@@ -1,0 +1,26 @@
+---
+title: "Enron Notebook: ediscovery"
+output: html_notebook
+---
+
+# State of ediscovery
+
+* 2019-02-07 search ediscovery data science
+  - Paul Hastings(https://goo.gl/qZ1gw6) "we do it"
+  - Drinker Biddle (https://goo.gl/4J6uaf) "chief data science officer"
+  - Training site placeholder(https://goo.gl/UWBCba)
+  - Proprietary vendors (https://goo.gl/SD6hky)
+  - Proprietary "advanced technology" (data reduction strategies including filtering, de-duplication)(https://goo.gl/kM9Sce)
+  - University workshops (https://goo.gl/bbhmxG)
+  - MCLE (https://goo.gl/cgwrdn)
+  _ contract attorneys 24-40/hour (https://goo.gl/w6eCus)
+  - TAR course (https://goo.gl/DmuscA)
+  
+* Written speech 
+  - McWhorter https://goo.gl/iKQAM3
+
+* FERC final staff report 2016 (https://goo.gl/EZYrHK)
+
+* FERC 2003 staff report (https://goo.gl/BqYR1h)
+
+* FERM 2002 staff report (https://goo.gl/ULRAV5) http://elibrary.ferc.gov/idmws/common/opennat.asp?fileID=9548231
