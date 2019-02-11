@@ -157,14 +157,83 @@ The final filter limited the dataset to emails sent before Enron's December 2, 2
 For purposes of this paper, the SQL database has been serialized to an `Rda` [file](https://s3-us-west–2.amazonaws.com/dslabs.nostromo/enron.Rda) of approximately 10MB size, which can be brought into an `R` session with the following 
 
       # syntax to load Rda from S3
-      
+      library(tidyverse)
       con <- url("https://s3-us-west-2.amazonaws.com/dslabs.nostromo/enron.Rda")
       load(con)
       close(con)
-      
+      enron <- as_tibble(enron)
+
+### Data restructuring
+
+Several changes to the `tibble` created are necessary:
+
+1. Change `date` from <chr>  to <date>
+2. Strip newlines and double quoted brackets from recipients
+3. Collect all senders and receivers and assign a unique numeric identifier^[This will be convenient for graph analysis labels and help minimize analysis bias.]
+
+```{r de-bracket recipients}
+
+library(rebus)
+
+# detection patterns to recipient fields tos and ccs
+
+new_line  = "\\\n"
+enron <- enron %>% mutate(ccs = gsub(new_line, "", ccs))      %>%
+                   mutate(ccs = gsub(OPEN_BRACKET, "", ccs))  %>%
+                   mutate(ccs = gsub(CLOSE_BRACKET, "", ccs)) %>%
+                   mutate(css = str_trim(ccs))                %>%
+                   mutate(tos = gsub(new_line, "", tos))      %>%
+                   mutate(tos = gsub(OPEN_BRACKET, "", tos))  %>%
+                   mutate(tos = gsub(CLOSE_BRACKET, "", tos)) %>%
+                   mutate(tos = str_trim(tos))                   
+
+```
+
+```{r idenities}
+# prepare list of email names
+from_names <- split(enron$sender, ",") %>% str_trim()
+to_names <- split(enron$tos, ",") %>% str_trim()
+cc_names <- split(enron$ccs, ",") %>% str_trim()
+
+
+all_names <- cbind(from_names, to_names, cc_names)
+all_names <- gsub('c(\"',"", all_names, fixed = TRUE)
+all_names <- gsub('\"', "", all_names, fixed = TRUE)
+all_names <- gsub(' , , ', "", all_names, fixed = TRUE)
+all_names <- gsub('(',"", all_names, fixed = TRUE)  
+all_names <- gsub(',,', ",", all_names, fixed = TRUE)
+all_names <- gsub('\\"',"", all_names)  
+all_names <- gsub(new_line, "", all_names)
+all_names <- gsub(",,,","", all_names)
+all_names <- gsub(",,","", all_names)
+
+
+
+
+
+all_names_c <- Corpus(VectorSource(all_names))
+names <- as_tibble(scan_tokenizer(all_names_c))
+unis <- names %>% unique()
+census <- unis %>% group_by(value) %>% count() %>% arrange(-desc(n))
+census <- census %>% filter(value != ',')
+census <- census %>% filter(value != ',,')
+census <- census %>% filter(value != 'list()')
+census <- census %>% filter(value != 'list(language ')
+census <- census %>% ungroup() %>% mutate(value = str_replace(value,",$",""))
+census <- census %>% mutate(value = str_replace(value,"^,",""))
+colnames(census) <- c("address", "uid")
+uids <- enframe(seq(10000,99999,1))
+uids <- sample(uids$value, 10987, replace = FALSE)
+uids <- enframe(uids)
+colnames(uids) <- c("name", "uid")
+census <- census %>% mutate(uid = uids$uid)
+
+
+```
+
 ## Information sought
 
-I downloaded the [staff] report and extracted the 6-page Executive Summary.^[This could, and would have been coded in `R` had multiple files been required.] From this, I extracted a list of keywords that indicated the general nature of FERC's inquiry. I deliberated excluded the extensive detail available in the remainder of the report. At the beginning of most ediscovery, the parties seeking review of electronic documents have topics in view, which the Executive Summary provides without biasing the analysis with the results of FERC's review.
+I downloaded the [staff] report and extracted the 6-page Executive Summary.^[This could, and would have been coded in `R` had multiple files been required.] From this, I extracted a list of keywords that indicated the general nature of FERC's inquiry. I deliberated excluded the extensive detail available in the remainder of the report. At the beginning of most ediscovery, the parties seeking review of electronic documents have topi/cs in view, which the Executive Summary provides without biasing the analysis with the results of FERC's review.
 
 
 
