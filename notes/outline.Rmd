@@ -96,15 +96,13 @@ While tedious, traversing the directory tree, parsing the emails and loading the
 
 While the emails were not in native format, the plain text versions contained nine principal segments, as shown in the figure below
 
-Of those, the following were extracted:
+Of those, the following were extracted from my earlier analysis for this paper:
 
 * sender
 * date
 * primary recipient(s)
 * cc recipient(s)
-* subject line
 * message body
-* file name from directory tree
 
 ### Data augmentation
 
@@ -117,22 +115,16 @@ The imported data and is augmented fields are as follows:
 +----------+--------------+----------------------------------------+
 | body     | mediumtext   | entire email less metadata             |
 | payload  | mediumtext   | the original message in email chain    |
-| hash     | varchar(250) | an md5 hash of payload                 |
 | sender   | varchar(250) | email address of sender                |
 | tos      | text         | direct recipient(s) email address(es)  |
-| mid      | varchar(250) | message identification metadata        |
 | ccs      | text         | copied recipient(s) email address(es)  |
 | date     | datetime     | date metadata                          |
-| subj     | varchar(500) | subject line of email                  |
-| tosctn   | mediumint(9) | number of direct recipients            |  
-| ccsctn   | mediumint(9) | number of copied recipients            |
-| source   | varchar(250) | path of directory from which extracted |
 +----------+--------------+----------------------------------------+
 \end{Verbatim}
 
 ### Deduplication
 
-The payload field hash, an [md5](https://en.wikipedia.org/wiki/MD5) encoded message digest[^In theory, it is possible that two non-identical sequences of bytes be encoded identically, the probability is low enough to make an md5 digest usable as a checksum verification, its purpose here.] was used as a primary key to assure the uniqueness of each record. Approximately half of the corpus consisted of duplicates, such as the original message in the sender's sent file and one or more copies in the recipient's inbox, at a minimum. Multiple recipients and recipients who used email folders as a filing system were another source of duplicate messages.
+A payload field hash, an [md5](https://en.wikipedia.org/wiki/MD5) encoded message digest[^In theory, it is possible that two non-identical sequences of bytes be encoded identically, the probability is low enough to make an md5 digest usable as a checksum verification, its purpose here.] was used in the initial analysis as a primary key to assure the uniqueness of each record. Approximately half of the corpus consisted of duplicates, such as the original message in the sender's sent file and one or more copies in the recipient's inbox, at a minimum. Multiple recipients and recipients who used email folders as a filing system were another source of duplicate messages.
   
 ### Text isolation
 
@@ -140,7 +132,7 @@ For natural language processing (**NLP**) purposes, treating the `payload` rathe
 
 ### Prioritization
 
-Analysis of emails in an arbitrary manner delays reducing its collective informational value in preliminary analysis. Prioritizing always leaves open the option of reviewing the set-asides later.
+Analysis of emails on the principal that "something may be overlooked"  delays reducing its collective informational value in preliminary analysis. Prioritizing always leaves open the option of reviewing the set-asides later.
 
 The first filter applied was to eliminate all email from external addresses that were not also recipients from internal addresses. Spam, newsletters and the like have low information potential. This filter reduced the remaining half of the corpus by half again, leaving approximately 125,000 emails.
 
@@ -163,11 +155,10 @@ For purposes of this paper, the SQL database has been serialized to an `Rda` [fi
 
 ### Data restructuring
 
-Several changes to the `tibble` created are necessary:
+From the `sender`, `tos` and `ccs` fields, emails were extracted. Emails in the
+*enron.com* were assigned a unique user identification, `uid`, integer; all
+external domain addresses were assigned the uid of 9999.
 
-1. Change `date` from <chr>  to <date>
-2. Strip newlines and double quoted brackets from recipients
-3. Collect all senders and receivers and assign a unique numeric identifier^[This will be convenient for graph analysis labels and help minimize analyst bias.]
 
 ```{r de-bracket recipients}
 
@@ -230,8 +221,7 @@ census <- census %>% mutate(uid = uids$uid)
 
 ## Information sought
 
-I downloaded the [staff] report and extracted the 6-page Executive Summary.^[This could, and would have been coded in `R` had multiple files been required.] From this, I extracted a list of keywords that indicated the general nature of FERC's inquiry. I deliberated excluded the extensive detail available in the remainder of the report. At the beginning of most ediscovery, the parties seeking review of electronic documents have topi/cs in view, which the Executive Summary provides without biasing the analysis with the results of FERC's review.
-
+I downloaded the [staff] report and extracted the 6-page Executive Summary.^[This could, and would have been coded in `R` had multiple files been required.] From this, I extracted a list of keywords that indicated the general nature of FERC's inquiry. I deliberately excluded the extensive detail available in the remainder of the report, from of which may have been derived from review of the corpus. At the beginning of most ediscovery, the parties seeking review of electronic documents have topics in view, which the Executive Summary provides without biasing the analysis with the results of FERC's review.
 
 
 ## Natural language processing

@@ -12,6 +12,7 @@ listifer <- function(x){
   x <- strsplit(x, comma)
   x <- x[[1]]
   x <- str_replace_all(x, sqmark,"")
+  x <- str_replace_all(x, " ", "")
 }
 
 # Tue Feb 12 22:26:51 2019 ------------------------------
@@ -27,6 +28,7 @@ sqmark = "'"
 bslash = "\\\\"
 email = "e-mail "
 email_pat <- '([_+a-z0-9-]+(\\.[_+a-z0-9-]+)*@[a-z0-9-]+(\\.[a-z0-9-]+)*(\\.[a-z]{2,14}))'
+endemic <- "^[.*\\@enron.com]"
 
 # Tue Feb 12 23:05:03 2019 ------------------------------
 # cleanse fields with mutliple emails as character strings, add indexer
@@ -37,25 +39,10 @@ enron <- enron   %>%  mutate(ccs = gsub(new_line, "", ccs))      %>%
                       mutate(tos = gsub(new_line, "", tos))      %>%
                       mutate(tos = gsub(OPEN_BRACKET, "", tos))  %>%
                       mutate(tos = gsub(CLOSE_BRACKET, "", tos)) %>%
-                      mutate(tos = str_trim(tos))                %>%
-                      rownames_to_column(., var = 'dex')
+                      mutate(tos = str_trim(tos))
 
 
-# Tue Feb 12 20:32:47 2019 -------------------------------------------
-# Convert emailers fields to lists fails: all end up in the list field
-# use dex as index? <==============================================
 
-sender <- enron$sender
-sender_rep <- map(sender, listifer)
-enron <- enron %>% mutate(sender = sender_rep)
-
-
-tos <- enron$tos
-tos_rep <- map(tos, listifer)
-enron <- enron %>% mutate(tos = tos_rep)
-ccs <- enron$ccs
-ccs_rep <- map(ccs, listifer)
-enron <- enron %>% mutate(ccs = ccs_rep)
 
 # Tue Feb 12 20:48:36 2019 ------------------------------
 # prepare lists of mailers and combine and de-dupe
@@ -69,32 +56,53 @@ all_names <- rbind(from_names, to_names, cc_names) %>% select(-name) %>%
              rename(emailer = value)                                 %>%
              mutate(emailer = as.character(emailer))                 %>%
              unique()
-
-
-# Tue Feb 12 22:47:50 2019 ------------------------------
-# create unique user identifications, uids
-uid_pool <- seq(1000,9999,1)
-uids <- enframe(sample(uid_pool, nrow(all_names), replace = FALSE)) %>%
-        select(-name)                                               %>%
-        rename(uid = value)                                         %>%
-        mutate(uid = as.integer(uid))
-
-
-all_names <- all_names %>% mutate(uid = uids$uid)
-
 # Tue Feb 12 23:07:22 2019 ------------------------------
 # save(all_names, file = "all_names.Rda")
 
+# Wed Feb 13 11:32:36 2019 ------------------------------
+# unique user assembly not working, brining tos ccs in as lists
+# exported all_names to csv; bash: grep'd ~enron, scrubed anomolous
+# addresses such as houston   .ward@enron.com => .ward@enron.com
+# eliminated trailing :uid, removed single and double quotes
+# sorted | unique
+# reimported to one column tibble 'users'
 
-# Tue Feb 12 23:14:33 2019 ------------------------------
-# not working, for one thing b/c more senders than unique emailers
-# assign user ids to senders
-# See `rlist` https://renkun-ken.github.io/rlist-tutorial/Features/Mapping.html
-enron <- enron %>%
-  mutate(s_uid = ifelse(sender %in% all_names$emailer, all_names[[1]][dex]), NA)
+# Wed Feb 13 11:39:22 2019 ------------------------------
+# create unique user identifications, uids
+# uid_pool <- seq(1000,nrow(users)+1000,1)
+# uids <- enframe(sample(uid_pool, nrow(users), replace = FALSE)) %>%
+#   select(-name)                                                 %>%
+#   rename(uid = value)                                           %>%
+#   mutate(uid = as.integer(uid))
+# save(users, file = "users.Rda")
 
-%>%
-  mutate(s_uid = as.list(s_suid))
+# Wed Feb 13 11:57:38 2019 ------------------------------
+# created users
+# A tibble: 2,332 x 3
+# dex   user                                uid
+# <int> <chr>                               <int>
+# 1     1 40enron@enron.com                 1915
+# 2     2 a..allen@enron.com                1159
+# save(users, file = "users.Rda")
+#
+# Wed Feb 13 13:19:58 2019 ------------------------------
+# joined users with enron by senders, one uid per sender
+# Wed Feb 13 13:31:57 2019 ------------------------------
+# lost 22 irregular mailers houston <.ward@enron.com>"
+s_users <- users %>% rename(s_uid = uid, sender = user)
+enron <-  left_join(enron, s_users, by = "sender") %>%
+          filter(!is.na(s_uid))
+# Wed Feb 13 13:51:48 2019 ------------------------------
+# save(enron, file = "enron.Rda)
 
 
+tos <- enron$tos
+# Wed Feb 13 13:56:17 2019 ------------------------------
+# censored non-enron, b/c no uid
+# write_csv; vi
+
+tos <-
+tos_rep <- map(tos, listifer)
+ccs <- enron$ccs
+ccs_rep <- map(ccs, listifer)
 
