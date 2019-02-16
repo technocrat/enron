@@ -74,6 +74,7 @@ all_names <- rbind(from_names, to_names, cc_names) %>% select(-name) %>%
 #   select(-name)                                                 %>%
 #   rename(uid = value)                                           %>%
 #   mutate(uid = as.integer(uid))
+
 # save(users, file = "users.Rda")
 
 # Wed Feb 13 11:57:38 2019 ------------------------------

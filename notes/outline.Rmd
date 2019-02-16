@@ -76,7 +76,7 @@ Following Enron's bankruptcy, FERC began an intense investigation, including the
 FERC obtained approximately 500,000 emails. Copies of these were acquired by Leslie Kaelbling of MIT and [published](https://www.cs.cmu.edu/~./enron/) by William W. Cohen of Carnegie Mellon University. It is one of the largest publicly available datasets of corporate email and is referred to as the Enron Corpus. The term *corpus* is used in natural language processing to denote a collection of related text.
 state. It was not uncommon, for example, for paper copies of email to be offered. These would typically be read by teams of freelance attorneys looking for keywords. Advanced technology included scanning with optical character recognition and some proprietary software options to organize emails and capture the status of review. 
 
-At the time, electronic record examination (*ediscovery*) in litigation was in a primativeMuch of the focus was directed to keyword searches, sometimes called the *smoking gun* approach. Brute force examination misses opportunities to understand the social networks that reflect how the organization operates, what their concerns are and which part of the corpus should receive priority. To do that the corpus must be distilled and analyzed.
+At the time, electronic record examination (*ediscovery*) in litigation was in a primative state. Much of the focus was directed to keyword searches, sometimes called the *smoking gun* approach. Brute force examination misses opportunities to understand the social networks that reflect how the organization operates, what their concerns are and which part of the corpus should receive priority. To do that the corpus must be distilled and analyzed.
 
 # Analysis
 
@@ -100,27 +100,9 @@ Of those, the following were extracted from my earlier analysis for this paper:
 
 * sender
 * date
-* primary recipient(s)
-* cc recipient(s)
+* recipient(s)
 * message body
 
-### Data augmentation
-
-The imported data and is augmented fields are as follows:
-
-\begin{Verbatim}[frame=single]
-
-+----------+--------------+----------------------------------------+
-| Field    | Type         | Description                            |
-+----------+--------------+----------------------------------------+
-| body     | mediumtext   | entire email less metadata             |
-| payload  | mediumtext   | the original message in email chain    |
-| sender   | varchar(250) | email address of sender                |
-| tos      | text         | direct recipient(s) email address(es)  |
-| ccs      | text         | copied recipient(s) email address(es)  |
-| date     | datetime     | date metadata                          |
-+----------+--------------+----------------------------------------+
-\end{Verbatim}
 
 ### Deduplication
 
@@ -140,11 +122,19 @@ A second filter for internal email was used to eliminate broadcast messages and 
 
 The third filter eliminated internal broadcast emails. This filter reduced the email count to approximately 24,000.
 
-The final filter limited the dataset to emails sent before Enron's December 2, 2001 bankruptcy. This filter reduced the email count to approximately 13,500, about 2.7% of the original total.^[*Ninety percent of everything is crap.* Theodore Sturgeon's Revelation, made in a dominantly paper-based information environment. *See also* Pareto distributions.]
+The fourth filter limited the dataset to emails sent before Enron's December 2, 2001 bankruptcy. This filter reduced the email count to approximately 13,500, about 2.7% of the original total.^[*Ninety percent of everything is crap.* Theodore Sturgeon's Revelation, made in a dominantly paper-based information environment. *See also* Pareto distributions.] A few emails dated "1979-12-31" were reviewed and deleted.[^In the technology of the day, user desktop computers relied on an internal clock powered by a battery; when the battery died, the date reset to what the operating system, usually a varient of Windows, considered as the beginning of time.]
+
+Finally, to achieve a practicable dataset, emails were limited to single Enron sender to Enron single recipient, reducing the dataset further, to 9,615 emails.
+
+### Augmentation and transformation
+
+Each unique address in the reduced dataset was assigned a userid. The primary purpose was to facilitate graph analysis with node identifiers of uniform length; the second, to reduce analyst bias arising from gender stereotyping, frequency of exposure and similar subjective pattern seeking behaviors. 
+
+The second transformation was to create an additional field with a `corpus` object to facilitate natural language processing.
 
 ### Resulting dataset
 
-For purposes of this paper, the SQL database has been serialized to an `Rda` [file](https://s3-us-west–2.amazonaws.com/dslabs.nostromo/enron.Rda) of approximately 10MB size, which can be brought into an `R` session with the following 
+For purposes of this paper, the resulting tibble has been serialized to an `Rda` [file](https://s3-us-west–2.amazonaws.com/dslabs.nostromo/enron.Rda) of approximately [ ] size, which can be brought into an `R` session with the following 
 
       # syntax to load Rda from S3
       library(tidyverse)
@@ -153,71 +143,7 @@ For purposes of this paper, the SQL database has been serialized to an `Rda` [fi
       close(con)
       enron <- as_tibble(enron)
 
-### Data restructuring
-
-From the `sender`, `tos` and `ccs` fields, emails were extracted. Emails in the
-*enron.com* were assigned a unique user identification, `uid`, integer; all
-external domain addresses were assigned the uid of 9999.
-
-
-```{r de-bracket recipients}
-
-library(rebus)
-
-new_line  = "\\\n"
-enron <- enron %>% mutate(ccs = gsub(new_line, "", ccs))      %>%
-                   mutate(ccs = gsub(OPEN_BRACKET, "", ccs))  %>%
-                   mutate(ccs = gsub(CLOSE_BRACKET, "", ccs)) %>%
-                   mutate(css = str_trim(ccs))                %>%
-                   mutate(tos = gsub(new_line, "", tos))      %>%
-                   mutate(tos = gsub(OPEN_BRACKET, "", tos))  %>%
-                   mutate(tos = gsub(CLOSE_BRACKET, "", tos)) %>%
-                   mutate(tos = str_trim(tos))                   
-
-```
-
 ```{r identities}
-# prepare list of email names
-from_names <- split(enron$sender, ",") %>% str_trim()
-to_names <- split(enron$tos, ",") %>% str_trim()
-cc_names <- split(enron$ccs, ",") %>% str_trim()
-
-
-all_names <- cbind(from_names, to_names, cc_names)
-all_names <- gsub('c(\"',"", all_names, fixed = TRUE)
-all_names <- gsub('\"', "", all_names, fixed = TRUE)
-all_names <- gsub(' , , ', "", all_names, fixed = TRUE)
-all_names <- gsub('(',"", all_names, fixed = TRUE)  
-all_names <- gsub(',,', ",", all_names, fixed = TRUE)
-all_names <- gsub('\\"',"", all_names)  
-all_names <- gsub(new_line, "", all_names)
-all_names <- gsub(",,,","", all_names)
-all_names <- gsub(",,","", all_names)
-
-
-
-
-
-all_names_c <- Corpus(VectorSource(all_names))
-names <- as_tibble(scan_tokenizer(all_names_c))
-unis <- names %>% unique()
-census <- unis %>% group_by(value) %>% count() %>% arrange(-desc(n))
-census <- census %>% filter(value != ',')
-census <- census %>% filter(value != ',,')
-census <- census %>% filter(value != 'list()')
-census <- census %>% filter(value != 'list(language ')
-
- census <- census %>% ungroup() %>% mutate(value = str_replace(value,",$",""))
-census <- census %>% mutate(value = str_replace(value,"^,",""))
-colnames(census) <- c("address", "uid")
-uids <- enframe(seq(10000,99999,1))
-uids <- sample(uids$value, 10987, replace = FALSE)
-uids <- enframe(uids)
-colnames(uids) <- c("name", "uid")
-census <- census %>% mutate(uid = uids$uid)
-
-
-```
 
 ## Information sought
 
