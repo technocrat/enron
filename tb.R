@@ -2,10 +2,10 @@
 library(tidyverse)
 library(tm)
 library(rebus)
-con <- url("https://s3-us-west-2.amazonaws.com/dslabs.nostromo/enron.Rda")
-load(con)
-close(con)
-enron <- as_tibble(enron)
+# con <- url("https://s3-us-west-2.amazonaws.com/dslabs.nostromo/enron.Rda")
+# load(con)
+# close(con)
+# enron <- as_tibble(enron)
 # Tue Feb 12 22:26:02 2019 ------------------------------
 # function to convert chr string of emails into list of emails
 listifer <- function(x){
@@ -64,7 +64,7 @@ all_names <- rbind(from_names, to_names, cc_names) %>% select(-name) %>%
 # exported all_names to csv; bash: grep'd ~enron, scrubed anomolous
 # addresses such as houston   .ward@enron.com => .ward@enron.com
 # eliminated trailing :uid, removed single and double quotes
-# sorted | unique
+# sorted | uniq
 # reimported to one column tibble 'users'
 
 # Wed Feb 13 11:39:22 2019 ------------------------------
@@ -102,8 +102,25 @@ tos <- enron$tos
 # censored non-enron, b/c no uid
 # write_csv; vi
 
-tos <-
+tos <- enron$tos
 tos_rep <- map(tos, listifer)
 ccs <- enron$ccs
 ccs_rep <- map(ccs, listifer)
 
+# Sat Feb 16 15:40:53 2019 ------------------------------
+# How user_ids were generated
+edge_pool <- seq(10000,20000,1)
+edges <- enframe(sample(edge_pool, nrow(all_names), replace = FALSE))	%>%
+  select(-name)                                                	    	%>%
+  rename(edge = value)                                           		%>%
+  mutate(edge = as.integer(edge))
+
+user_pool <- seq(1562,3662,1)
+userid <- sample(user_pool, 1561, replace = FALSE) %>%
+  select(-name)                                    %>%
+  rename(userid = value)                           %>%
+  mutate(userid = as.integer(userid))
+
+# Sat Feb 16 15:45:54 2019 ------------------------------
+# code to create Vector source column
+e <- e %>% mutate(edge_corp = map(payload, VectorSource)
