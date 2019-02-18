@@ -124,3 +124,13 @@ userid <- sample(user_pool, 1561, replace = FALSE) %>%
 # Sat Feb 16 15:45:54 2019 ------------------------------
 # code to create Vector source column
 e <- e %>% mutate(edge_corp = map(payload, VectorSource)
+
+# Sun Feb 17 19:40:37 2019 ------------------------------
+library(sna)
+pairs <- enron %>% select(t_userid, f_userid) %>% distinct()
+m <- as.matrix(pairs, rownames.force = NA)
+pals <- pairs %>% mutate(mutual = t_userid %in% f_userid & f_userid %in% t_userid)
+penpals <- pals %>% filter(mutual == TRUE)
+g_enron <- enron %>%
+  mutate(mutual = t_userid %in% penpals$f_userid & f_userid %in% penpals$t_userid) %>%
+  filter(mutual == TRUE) %>% select(-mutual)
