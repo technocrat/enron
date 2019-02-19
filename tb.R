@@ -134,3 +134,22 @@ penpals <- pals %>% filter(mutual == TRUE)
 g_enron <- enron %>%
   mutate(mutual = t_userid %in% penpals$f_userid & f_userid %in% penpals$t_userid) %>%
   filter(mutual == TRUE) %>% select(-mutual)
+g_enron <- as.tibble(g_enron)
+g_enron <- g_enron %>% filter(f_userid != t_userid)
+# save(g_enron, file = "g_enron")
+library(statnet)
+library(UserNetR)
+
+netmat <- g_enron %>% select(t_userid, f_userid)
+net <- network(netmat, matrix.type = "edgelist")
+
+cd_weak <- component.dist(net ,connected="weak")
+net_weak <- length(cd_weak$csize)
+cd_strong <- component.dist(net ,connected="strong")
+net_strong length(cd_strong$csize)
+
+clus <- gtrans(net, mode = "graph")
+
+delete.vertices(net, isolates(net))
+
+

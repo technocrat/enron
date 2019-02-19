@@ -6,11 +6,36 @@ date: "February 8, 2019"
 output: 
     html_document
 
-header-includes:
-   - \usepackage{fancyvrb}
-   - \usepackage{hyperref}
-   - \usepackage{graphicx}
+# header-includes:
+#    - \usepackage{fancyvrb}
+#    - \usepackage{hyperref}
+#    - \usepackage{graphicx}
 ---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning=FALSE, message=FALSE)
+                      
+suppressPackageStartupMessages(library(network))
+suppressPackageStartupMessages(library(rebus))
+suppressPackageStartupMessages(library(statnet))
+suppressPackageStartupMessages(library(statnet))
+suppressPackageStartupMessages(library(tidyverse))
+suppressPackageStartupMessages(library(tm))
+suppressPackageStartupMessages(library(UserNetR))
+
+library(network)
+library(rebus)
+library(tidyverse)
+library(tm)
+library(UserNetR)
+library(rebus)
+library(sna)
+library(statnet)
+library(tm)
+
+load("g_enron")
+
+```
 
 # Introduction
 
@@ -122,7 +147,7 @@ The next transformation was to create an additional field with a `corpus` object
 
     enron <- enron %>% mutate(edge_corp = map(payload, tm::VectorSource)
 
-To achieve a computationally practicable dataset for social network analysis, emails were limited to single Enron sender to Enron single recipient, reducing the dataset further, to 9,615 emails. The resulting graph had low density, and the the dataset was further trimmed by restricting it to reciprocal correspondents, each of whom sent an email to the other, either as a reply or an original message. This further reduced the dataset, to 6,851 emails among 470 users.
+To achieve a computationally practicable dataset for social network analysis, emails were limited to single Enron sender to Enron single recipient, reducing the dataset further, to 9,615 emails. The resulting graph had low density, and the the dataset was further trimmed by restricting it to reciprocal correspondents, each of whom sent an email to the other, either as a reply or an original message, excluding emails by a user to herself.. This further reduced the dataset, to 6,009 emails among 465 users.
 
 ## Social network analysis
 
@@ -137,6 +162,120 @@ Graphs are potentially computationally intensive, which motivated the reduction 
 Graphs are not only a processing unit, they constitute the domain of their own branch of mathematics.^[*See, e.g.*, the brief tutorial by [Keijo Ruohonen]].
 
 ### The Enron graph
+
+#### Visualization
+
+```{r p0, echo=FALSE}
+netmat <- g_enron %>% select(t_userid, f_userid)
+net <- network(netmat, matrix.type = "edgelist")
+net_p0 <- plot(net, vertex.cex = 0.1)
+```
+
+The graph shows a dense cluster of users with a high concentration of potentially connected gropus of mutually interacting pairs surrounded by a cloud of low interactivity.
+
+#### Size
+
+```{r netsize, echo=FALSE, results = 'asis'}
+net
+net_edgeno <- length(net$mel)
+net_users <- g_enron %>% distinct(f_userid) %>% nrow()
+net_vertices <- net$gal$n
+```
+
+The graph consists of `r net_edgeno` edges, each representing one email, an average of `r net_edgeno/net_users` emails per user.
+
+#### Density
+
+```{r density_0, echo=FALSE}
+net0 <- gden(net) 
+```
+
+The graph has a density of `r net0`, which is very low.
+
+#### Components
+
+```{r connectedness, echo=FALSE, results='hide'}
+cd_weak    <- component.dist(net ,connected = "weak")
+net_weak   <- length(cd_weak$csize)
+cd_strong  <- component.dist(net ,connected = "strong")
+net_strong <- length(cd_strong$csize)
+```
+
+As seen in the visualization of the graph, two components are present, one that is strongly connected, and the other, weakly, comprising `r net_strong` and `r net_weak` members, respectively.
+
+#### Diameter
+
+```{r diameter, echo=FALSE, results='hide'}
+lgc <- component.largest(net, result = "graph")
+gd <- geodist(lgc)
+```
+
+The diameter of the graph, `r max(gd$gdist)`, is the number of steps required to connect the two nodes furthest apart.
+
+#### Clustering
+
+```{r clustering, echo=FALSE, results='hide', warning=FALSE}
+clus <- gtrans(net, mode = "graph", use.adjacency = FALSE)
+```
+
+The clustering coefficient of the graph is low, `r clus`, indicating relatively few users who belong to interacting groups.
+
+
+### The Reduced Enron graph
+
+```{r extract, echo=FALSE, results='hide'}
+net_r <- delete.vertices(net, isolates(net))
+net_r_vertices <- net_r$gal$n
+```
+
+Eliminating isolates reduces the number of connection endpoints from `r net_vertices` to `r net_r_vertices`.
+
+#### Visualization
+
+```{r p1, echo=FALSE}
+net_p0 <- plot(net_r, vertex.cex = 0.75)
+
+```
+
+The reduced graph is the dense portion of the original, but some more readily discernable structure is apparent. 
+
+#### Density
+
+```{r density_1, echo=FALSE}
+net1 <- gden(net) 
+```
+
+The graph has a density of `r net1`,  compared to the original graph, `r net0` or `r net1/net0` greater.
+
+#### Components
+
+```{r connectedness, echo=FALSE, results='hide'}
+cd_weak    <- component.dist(net ,connected = "weak")
+net_weak   <- length(cd_weak$csize)
+cd_strong  <- component.dist(net ,connected = "strong")
+net_strong <- length(cd_strong$csize)
+```
+
+As seen in the visualization of the graph, only `r net_weak` member is weakly connected.
+
+#### Diameter
+
+```{r diameter, echo=FALSE, results='hide'}
+lgc <- component.largest(net, result = "graph")
+gd <- geodist(lgc)
+```
+
+The diameter of the graph, `r max(gd$gdist)`, the number of steps required to connect the two nodes furthest apart, is unchanged from the original.
+
+#### Clustering
+
+```{r clustering, echo=FALSE, results='hide', warning=FALSE}
+clus <- gtrans(net, mode = "graph", use.adjacency = FALSE)
+```
+
+The clustering coefficient of the graph is low, `r clus`, essentially identical to the original graph, indicating relatively few users who belong to interacting groups.
+
+### Social network analysis of the reduced Enron graph
 
 
 
