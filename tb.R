@@ -1,11 +1,16 @@
 # syntax to load Rda from S3
 library(tidyverse)
 library(tm)
-library(rebus)
-# con <- url("https://s3-us-west-2.amazonaws.com/dslabs.nostromo/enron.Rda")
-# load(con)
-# close(con)
-# enron <- as_tibble(enron)
+library(tidytext)
+library(here)
+library(broom)
+library(topicmodels)
+#library(rebus)
+#library(GGally)
+#library(ergm.ego)
+library(statnet)
+#library(UserNetR)
+setwd("projects/enron")
 # Tue Feb 12 22:26:02 2019 ------------------------------
 # function to convert chr string of emails into list of emails
 listifer <- function(x){
@@ -142,6 +147,7 @@ library(UserNetR)
 
 netmat <- g_enron %>% select(t_userid, f_userid)
 net <- network(netmat, matrix.type = "edgelist")
+vertices <- network.vertex.names(net)
 
 cd_weak <- component.dist(net ,connected="weak")
 net_weak <- length(cd_weak$csize)
@@ -152,4 +158,161 @@ clus <- gtrans(net, mode = "graph")
 
 delete.vertices(net, isolates(net))
 
+df.prom <- data.frame(
+  deg = degree(net),
+  btw = betweenness(net),
+  inf = infocent(net)
+)
 
+cor(df.prom)
+# deg       btw       inf
+# deg 1.0000000 0.6006736 0.3655786
+# btw 0.6006736 1.0000000 0.4212161
+# inf 0.3655786 0.4212161 1.0000000
+#
+
+
+df.prom <- data.frame(
+  deg = degree(net),
+  btw = betweenness(net),
+  inf = infocent(net)
+)
+
+
+netmat <- g_enron %>% select(t_userid, f_userid)
+net <- network(netmat, matrix.type = "edgelist")
+vertices <- network.vertex.names(net)
+
+
+
+netmat <- g_enron %>% select(t_userid, f_userid)
+net <- network(netmat, matrix.type = "edgelist")
+vertices <- network.vertex.names(net)
+net_raw <- network(netmat, matrix.type = "edgelist")
+
+
+delete.vertices(net, isolates(net))
+
+
+df.prom <- data.frame(
+  deg = degree(net),
+  btw = betweenness(net),
+  inf = infocent(net)
+)
+vertices <- net %v% 'vertex.names'
+vertices <- enframe(vertices) %>% rename(node = value)
+prominence <- as_tibble(df.prom)
+prominence <- bind_cols(prominence, vertices)
+
+prominence <- prominence %>% select(name, node, deg, btw, inf)
+prominence <- prominence %>% mutate(pareto_deg = cume_dist(deg))	%>%
+  mutate(pareto_btw = cume_dist(btw))	%>%
+  mutate(pareto_inf = cume_dist(inf))
+prominence <- prominence %>% filter(pareto_deg >= 0.8)				%>%
+  filter(pareto_btw >= 0.8)				%>%
+  filter(pareto_inf >= 0.8)
+
+op <- par(mfrow=c(1,2))
+gplot(net_raw, usearrows=FALSE,edge.col = "gray80", lwd = 0.5)
+gplot(net, usearrows=FALSE,edge.col = "gray80", lwd = 0.5)
+
+ggnet(net_raw, size = 0.1, alpha = 0.75)
+ggnet(net, size = 0.1, alpha = 0.75)
+
+# Thu Feb 21 14:29:46 2019 ------------------------------
+# g_enron filted for highest 38 users based on centrality
+#
+net_p <- network(prominents, matrix.type = "edgelist")
+vertices <- network.vertex.names(net_p)
+
+netmat <- g_enron %>% filter(f_userid == 1648 | t_userid == 1648)
+net1648 <- network(netmat, matrix.type = "edgelist")
+vertices <- network.vertex.names(net1648)
+ggnet(net1648, size = 0.1, alpha = 0.75)
+
+egomap <- function(x) {
+  netmat <-g_enron %>% filter(f_userid == x | t_userid == x)
+  e_net <- network(netmat, matrix.type = "edgelist")
+  vertices <- network.vertex.names(e_net)
+  ggnet(e_net, size = 0.1, alpha = 0.84)
+}
+library(tm)
+library(here)
+uri <- here("wolak.pdf")
+engine <- "pdftools"
+reader <- readPDF(engine)
+wolak <- reader(elem = list(uri = uri), language = "en", id = "id1")
+save(wolak, file = "wolak.Rda")
+wolak <- VectorSource(wolak)
+w_corpus <- VCorpus(wolak)
+w_corpus <- tm_map(w_corpus, stripWhitespace)
+w_corpus <- tm_map(w_corpus, removeWords, stopwords("english"))
+w_corpus <- tm_map(w_corpus, removeNumbers)
+w_corpus <- tm_map(w_corpus, removePunctuation, preserve_intra_word_contractions = TRUE, preserve_intra_word_dashes = TRUE)
+w_corpus <- tm_map(w_corpus, stemDocument)
+save(w_corpus, file = "w_corpus.Rda")
+w_dtm <- DocumentTermMatrix(w_corpus)
+removeSparseTerms(w_dtm, 0.2)
+save(w_dtm, file = "w_dtm.Rda")
+#findFreqTerms(w_dtm, 5)
+#findAssocs(w_dtm, "day-ahead", 0.8)
+w_ctm <- CTM(w_dtm, k = 5) # how to unpack
+w_lda <- LDA(w_dtm, control = list(alpha = 0.1), k = 5)
+w_lda_inf <- posterior(w_lda, w_dtm)
+
+term_tfidf <-
+  + tapply(w_dtm$v/row_sums(w_dtm)[w_dtm$i], w_dtm$j, mean) *
+  + log2(nDocs(w_dtm)/col_sums(w_dtm > 0))
+
+w_dtm <- w_dtm[,term_tfidf >= 0.1]
+w_dtm <- w_dtm[row_sums(w_dtm) > 0,]
+summary(col_sums(w_dtm))
+
+library("topicmodels")
+k <- 3
+SEED <- 2010
+w_TM <- list(VEM = LDA(w_dtm, k = k, control = list(seed = SEED)),VEM_fixed = LDA(w_dtm, k = k,control = list(estimate.alpha = FALSE, seed = SEED)), Gibbs = LDA(w_dtm, k = k, method = "Gibbs", control = list(seed = SEED, burnin = 1000, thin = 100, iter = 1000)), CTM = CTM(w_dtm, k = k, control = list(seed = SEED, var = list(tol = 10^-4), em = list(tol = 10^-3))))
+
+sapply(w_TM[1:2], slot, "alpha")
+
+w_Topic <- topics(w_TM[["VEM"]], 1)
+w_terms <- terms(w_TM[["VEM"]], 250)
+Terms[,1:5]
+
+
+w_terms <- tidy(w_dtm)
+w_terms <- w_terms %>% mutate(term = str_replace(term, "^[:punct:]", ""))
+
+# Sat Feb 23 17:05:05 2019 ------------------------------
+# can be no blank rows in dtm, but nrow must be kept in sync
+# Must also re run networks -----------------------------
+g_enron <- g_enron %>% filter(nchar(payload) <10) # filters 692 blanks
+g_bag <- g_enron %>% select(payload)
+g <- VectorSource(g_bag)
+g_corpus <- tm_map(g_corpus, stripWhitespace)
+g_corpus <- tm_map(g_corpus, removeWords, stopwords("english"))
+g_corpus <- tm_map(g_corpus, removeNumbers)
+g_corpus <- tm_map(g_corpus, removePunctuation, preserve_intra_word_contractions = TRUE, preserve_intra_word_dashes = TRUE)
+g_corpus <- tm_map(g_corpus, stemDocument)
+save(g_corpus, file = "g_corpus.Rda")
+g_dtm <- DocumentTermMatrix(g_corpus)
+# Sat Feb 23 15:12:14 2019 ------------------------------
+# Remove all zero rows
+rowTotals <- apply(g_dtm , 1, sum)
+g_dtm <- g_dtm[rowTotals> 0, ]
+
+removeSparseTerms(g_dtm, 0.2)
+save(g_dtm, file = "g_dtm.Rda")
+
+library("topicmodels")
+
+
+
+k <- 3
+SEED <- 2010
+g_TM <- list(VEM = LDA(g_dtm, k = k, control = list(seed = SEED)),VEM_fixed = LDA(g_dtm, k = k,control = list(estimate.alpha = FALSE, seed = SEED)), Gibbs = LDA(g_dtm, k = k, method = "Gibbs", control = list(seed = SEED, burnin = 1000, thin = 100, iter = 1000)), CTM = CTM(g_dtm, k = k, control = list(seed = SEED, var = list(tol = 10^-4), em = list(tol = 10^-3))))
+
+sapply(g_TM[1:2], slot, "alpha")
+
+
+g_terms<- terms(g_TM[["VEM"]], 250)
