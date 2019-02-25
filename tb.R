@@ -1,16 +1,16 @@
 # syntax to load Rda from S3
+setwd("projects/enron")
+library(broom)
+library(GGally)
+library(here)
+library(statnet)
+library(tidytext)
 library(tidyverse)
 library(tm)
-library(tidytext)
-library(here)
-library(broom)
 library(topicmodels)
 #library(rebus)
-#library(GGally)
 #library(ergm.ego)
-library(statnet)
 #library(UserNetR)
-setwd("projects/enron")
 # Tue Feb 12 22:26:02 2019 ------------------------------
 # function to convert chr string of emails into list of emails
 listifer <- function(x){
@@ -21,7 +21,7 @@ listifer <- function(x){
 }
 
 # Tue Feb 12 22:26:51 2019 ------------------------------
-# regex pattern
+# regex patterns
 new_line  = "\\\n"
 dquote <- escape_special('"')
 opunct <- "^[:punct:]"
@@ -101,6 +101,13 @@ enron <-  left_join(enron, s_users, by = "sender") %>%
 # Wed Feb 13 13:51:48 2019 ------------------------------
 # save(enron, file = "enron.Rda)
 
+# Sun Feb 24 15:03:20 2019 ------------------------------
+userids <- g_enron %>% select(f_userid, t_userid)
+f <- g_enron %>% distinct(f_userid)
+t <- g_enron %>% distinct(t_userid)
+userids <- bind_rows(f,t)
+userids <- userids %>% distinct()
+
 
 tos <- enron$tos
 # Wed Feb 13 13:56:17 2019 ------------------------------
@@ -132,27 +139,32 @@ e <- e %>% mutate(edge_corp = map(payload, VectorSource)
 
 # Sun Feb 17 19:40:37 2019 ------------------------------
 library(sna)
-pairs <- enron %>% select(t_userid, f_userid) %>% distinct()
+pairs <- g_enron %>% select(t_userid, f_userid) %>% distinct()
 m <- as.matrix(pairs, rownames.force = NA)
 pals <- pairs %>% mutate(mutual = t_userid %in% f_userid & f_userid %in% t_userid)
 penpals <- pals %>% filter(mutual == TRUE)
-g_enron <- enron %>%
+g_enron <- g_enron %>%
   mutate(mutual = t_userid %in% penpals$f_userid & f_userid %in% penpals$t_userid) %>%
   filter(mutual == TRUE) %>% select(-mutual)
-g_enron <- as.tibble(g_enron)
+g_enron <- as_tibble(g_enron)
+# remove memos to self
 g_enron <- g_enron %>% filter(f_userid != t_userid)
+# remove "empty" messages
+g_enron <- g_enron %>% filter(nchar(payload) > 10) # filters 692 blanks
 # save(g_enron, file = "g_enron")
+
 library(statnet)
 library(UserNetR)
 
+
 netmat <- g_enron %>% select(t_userid, f_userid)
-net <- network(netmat, matrix.type = "edgelist")
+net <- network(netmat, matrix.type = "edgelist") # need to filter empty payloads
 vertices <- network.vertex.names(net)
 
-cd_weak <- component.dist(net ,connected="weak")
+cd_weak <- component.dist(net, connected = "weak")
 net_weak <- length(cd_weak$csize)
 cd_strong <- component.dist(net ,connected="strong")
-net_strong length(cd_strong$csize)
+net_strong <- length(cd_strong$csize)
 
 clus <- gtrans(net, mode = "graph")
 
@@ -203,28 +215,30 @@ vertices <- net %v% 'vertex.names'
 vertices <- enframe(vertices) %>% rename(node = value)
 prominence <- as_tibble(df.prom)
 prominence <- bind_cols(prominence, vertices)
-
 prominence <- prominence %>% select(name, node, deg, btw, inf)
 prominence <- prominence %>% mutate(pareto_deg = cume_dist(deg))	%>%
   mutate(pareto_btw = cume_dist(btw))	%>%
   mutate(pareto_inf = cume_dist(inf))
-prominence <- prominence %>% filter(pareto_deg >= 0.8)				%>%
-  filter(pareto_btw >= 0.8)				%>%
-  filter(pareto_inf >= 0.8)
-
-op <- par(mfrow=c(1,2))
-gplot(net_raw, usearrows=FALSE,edge.col = "gray80", lwd = 0.5)
-gplot(net, usearrows=FALSE,edge.col = "gray80", lwd = 0.5)
-
-ggnet(net_raw, size = 0.1, alpha = 0.75)
-ggnet(net, size = 0.1, alpha = 0.75)
-
-# Thu Feb 21 14:29:46 2019 ------------------------------
-# g_enron filted for highest 38 users based on centrality
+prominence <- prominence %>% filter(pareto_deg >= 0.9)				%>%
+  filter(pareto_btw >= 0.9)				%>%
+  filter(pareto_inf >= 0.9)
+prominence %>% select(deg, btw, inf) %>% cor()
+# three measures are not independent
+# deg       btw       inf
+# deg 1.0000000 0.4670800 0.4799712
+# btw 0.4670800 1.0000000 0.5591332
+# inf 0.4799712 0.5591332 1.0000000
 #
-net_p <- network(prominents, matrix.type = "edgelist")
-vertices <- network.vertex.names(net_p)
+#
+centrals <- prominence$node
+# save(centrals, file = "centrals.Rda")
 
+
+# Sun Feb 24 22:29:51 2019 ------------------------------
+# g_enron filted for highest 16 users based on centrality
+#
+net_p <- network(prominence, matrix.type = "edgelist")
+vertices <- network.vertex.names(net_p)
 netmat <- g_enron %>% filter(f_userid == 1648 | t_userid == 1648)
 net1648 <- network(netmat, matrix.type = "edgelist")
 vertices <- network.vertex.names(net1648)
@@ -279,14 +293,13 @@ w_Topic <- topics(w_TM[["VEM"]], 1)
 w_terms <- terms(w_TM[["VEM"]], 250)
 Terms[,1:5]
 
-
 w_terms <- tidy(w_dtm)
 w_terms <- w_terms %>% mutate(term = str_replace(term, "^[:punct:]", ""))
 
 # Sat Feb 23 17:05:05 2019 ------------------------------
 # can be no blank rows in dtm, but nrow must be kept in sync
 # Must also re run networks -----------------------------
-g_enron <- g_enron %>% filter(nchar(payload) <10) # filters 692 blanks
+#g_enron <- g_enron %>% filter(nchar(payload) <10) # filters 692 blanks
 g_bag <- g_enron %>% select(payload)
 g <- VectorSource(g_bag)
 g_corpus <- tm_map(g_corpus, stripWhitespace)
@@ -294,7 +307,7 @@ g_corpus <- tm_map(g_corpus, removeWords, stopwords("english"))
 g_corpus <- tm_map(g_corpus, removeNumbers)
 g_corpus <- tm_map(g_corpus, removePunctuation, preserve_intra_word_contractions = TRUE, preserve_intra_word_dashes = TRUE)
 g_corpus <- tm_map(g_corpus, stemDocument)
-save(g_corpus, file = "g_corpus.Rda")
+#save(g_corpus, file = "g_corpus.Rda")
 g_dtm <- DocumentTermMatrix(g_corpus)
 # Sat Feb 23 15:12:14 2019 ------------------------------
 # Remove all zero rows
