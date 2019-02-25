@@ -291,10 +291,12 @@ The three measures of prominence are correlated, to varying degrees, indicating 
 ```{r prominence}
 net_p <- network(prominence, matrix.type = "edgelist")
 vertices <- network.vertex.names(net_p)
-
+prominent <- g_enron %>% filter(f_userid %in% centrals | t_userid %in% centrals)
 ```
 
-These `r length(net_p$mel)` users are connected to `r length(vertices) - length(net_p$mel)` other users.
+These `r length(net_p$mel)` users are connected to `r length(vertices) - length(net_p$mel)` other users. They account for `r nrow(prominent)/nrow(g_enron)*100`% of the emails, as sender or receiver, in the reduced graph.
+
+
 
 
 
