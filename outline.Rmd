@@ -23,6 +23,7 @@ suppressPackageStartupMessages(library(tm))
 #suppressPackageStartupMessages(library(UserNetR))
 library(network)
 library(tidyverse)
+library(GGally)
 #library(UserNetR)
 #library(rebus)
 library(sna)
@@ -136,7 +137,7 @@ After deduplication, the first filter applied was to eliminate all email from ex
 
 A second filter for internal email was used to eliminate broadcast messages and high frequency administrative messages. Indicia of broadcast messages were large numbers of recipients, high frequency, paucity of return correspondence and keyword in context screening. Administrative messages to single recipients were identified by frequency, lack of return correspondence and high frequency words. Many of these were nagging emails concerning the lack of approval of expense reports, for example. This filter reduced the dataset to approximately 24,000.
 
-The third filter limited the dataset to emails sent before Enron's December 2, 2001 bankruptcy. This filter reduced the email count to approximately 13,500, about 2.7% of the original total.^[*Ninety percent of everything is crap.* Theodore Sturgeon's Revelation, made in a dominantly paper-based information environment. *See also* Pareto distributions.] A few emails dated "1979-12-31" were reviewed and deleted.^[In the technology of the day, user desktop computers relied on an internal clock powered by a battery; when the battery died, the date reset to what the operating system, usually a variant of Windows, considered as the beginning of time.]
+The third filter limited the dataset to emails sent before Enron's December 2, 2001 bankruptcy. This filter reduced the email count to approximately 13,500, about 2.7% of the original total.^[*Ninety percent of everything is crap.* Theodore Sturgeon's Revelation, made in a dominantly paper-based information environment. *See also* Pareto distributions.] A few emails dated "1979-12-31" were reviewed and deleted.^[In the technology of the day, user desktop computers relied on an internal clock powered by a battery; when the battery died, the date reset to what the operating system, usually a variant of Windows, considered as the beginning of time.] The resulting dataset was named `g_enron` for its primary purpose, network graph analysis
 
 ### Augmentation and transformation
 
@@ -144,7 +145,7 @@ Each unique Enron address in the reduced dataset was assigned a userid. The prim
 
 The next transformation was to create an additional field with a `corpus` object to facilitate natural language processing.
 
-    enron <- enron %>% mutate(edge_corp = map(payload, tm::VectorSource)
+    g_enron <- g_enron %>% mutate(edge_corp = map(payload, tm::VectorSource)
 
 To achieve a computationally practicable dataset for initial social network analysis, emails were limited to single Enron sender to Enron single recipient, reducing the dataset further, to 9,615 emails. The resulting graph had low density, and the the dataset was further trimmed by restricting it to reciprocal correspondents, each of whom sent an email to the other, either as a reply or an original message, excluding emails by a user to herself. This further reduced the dataset, to 6,009 emails among 465 users. Finally, many emails were found to be blank or extremely short -- fewer than 10 characters, resulting in a final count of 5,922 emails among 445 users.
 
@@ -152,7 +153,7 @@ To achieve a computationally practicable dataset for initial social network anal
 
 ### The nature of social networks
 
-Following the reduction of the corpus, the remaining senders and receivers were natural persons who engaged in mutual correspondence. These constitute `nodes` or `verticess` and their emails `edges`^[Or `arcs`, when directionality is considered]. Draw theee points and connect them, and you have created three nodes and three edges, a triagle, which is termed a `graph` object. A graph object encapsulates many useful features aside from who knows whom^[Such as the parlor game [six degrees of Kevin Bacon]] including measures of density, centrality, connectedness, separation, clustering and other indicia of how well or poorly embedded in an organization any individual may stand.
+Following the reduction of the corpus, the remaining senders and receivers were natural persons who engaged in mutual correspondence. These constitute `nodes` or `vertices` and their emails `edges`^[Or `arcs`, when directionality is considered]. Draw theee points and connect them, and you have created three nodes and three edges, a triagle, which is termed a `graph` object. A graph object encapsulates many useful features aside from who knows whom^[Such as the parlor game [six degrees of Kevin Bacon]] including measures of density, centrality, connectedness, separation, clustering and other indicia of how well or poorly embedded in an organization any individual may stand.
 
 A graph object has the added advantage that its `edges` (connectors) can be loaded with an arbitrary number of attributes, such as date and semantic analysis content. For example a graph may be partitioned by topics -- some correspondents may have a purely non-business social relationship, others may be concerned solely with facilities maintenance, and yet others may have a strong association with trading commodities.
 
@@ -160,7 +161,7 @@ Graphs are potentially computationally intensive, which motivated the reduction 
 
 Graphs are not only a processing unit, they constitute the domain of their own branch of mathematics.^[*See, e.g.*, the brief tutorial by [Keijo Ruohonen]].
 
-### Description of the Enron graph
+### Exploratory data analysis of the Enron social network.
 
 #### Visualization
 
@@ -181,6 +182,10 @@ net_raw
 The graph consists of `r length(net_raw$mel)` edges, each representing one or more emails, an average of `r length(net_raw$mel)/net_raw$gal$n` emails per user.
 
 #### Density
+
+```{r, echo=FALSE}
+raw_density <- gden(net_raw)
+```
 
 The graph has a density of `r gden(net_raw)`, which is very low.
 
@@ -220,14 +225,14 @@ net_vertices <- net$gal$n
 net
 ```
 
-Eliminating isolates reduces the number of connection endpoints from `r net_vertices` to `r net_vertices`. Within the original graph, the number of isolated node pairs, those that do not connect to the dense cluster in the center, can be eliminated to show the most interactive exchanges, thusly
+Eliminating isolates reduces the number of connection endpoints from `r length(net_raw$mel)` to `r net_vertices`. Within the original graph, the number of isolated node pairs, those that do not connect to the dense cluster in the center, can be eliminated to show the most interactive exchanges, thusly
 
     net <- delete.vertices(net_raw, isolates(net_raw))
 
 
 #### Visualization
 
-The contrast between the original and reduced graph (after removing isolates) is visually striking. Note that the line *length* does not any meaning; they vary solely to promote better visual discrimination.
+The contrast between the original and reduced graph (after removing isolates) is visually striking. Note that the edge line *length* does have any meaning; they vary solely to promote better visual discrimination.
 
 ```{r p, echo=FALSE}
 
@@ -239,7 +244,7 @@ The reduced graph is the dense portion of the original, but some more readily di
 
 #### Density
 
-The graph has a density of `r gden(net)`,  compared to the original graph, `r gden(net_raw)` or `r gden(net)/gden(net_raw)` greater.
+The graph has a density of `r gden(net)`,  compared to the original graph, `r raw_density` or `r gden(net)/raw_density` greater.
 
 #### Components
 
@@ -271,7 +276,7 @@ The clustering coefficient of the graph is low, `r clus`, essentially identical 
 
 ### Decomposition of the reduced Enron graph
 
-Among the nodes represented in the visualization above, some have satellite nodes that connect principally to these center points. As a reminder, the length of the lines carries no meaning, nor the distance or proximity between dense portions of the graph. The rendering algorithm's principal purpose is to spread out the links to promote visual clarity.
+Among the nodes represented in the visualization above, some have satellite nodes that connect principally to these center points. As a reminder, the length of the edge lines carries no meaning, nor the distance or proximity between dense portions of the graph. The rendering algorithm's principal purpose is to spread out the links to promote visual clarity.
 
 Although, visual inspection shows some *remote* nodes, every node is directly or indirectly connected to every other node in the graph, the number of isoletes is `r isolates(net)`. However, visual inspection also shows that *some* nodes are much more connected than others.
 
@@ -294,13 +299,37 @@ vertices <- network.vertex.names(net_p)
 prominent <- g_enron %>% filter(f_userid %in% centrals | t_userid %in% centrals)
 ```
 
-These `r length(net_p$mel)` users are connected to `r length(vertices) - length(net_p$mel)` other users. They account for `r nrow(prominent)/nrow(g_enron)*100`% of the emails, as sender or receiver, in the reduced graph.
+These `r length(net_p$mel)` users are connected to `r length(vertices) - length(net_p$mel)` other users. They account for `r nrow(prominent)/nrow(g_enron)*100`% of the emails, as sender or receiver, in the reduced graph. Limiting the reduced graph to these central users results in the following graph.
+
+```{r}
+load("prominent.Rda")
+netmat <- prominent %>% select(t_userid, f_userid)
+net_p <- network(netmat, matrix.type = "edgelist")
+vertices <- network.vertex.names(net_p)
+ggnet(net_p, size = 0.1, alpha = 0.84)
+```
+This visualization, like original graph, shows "noise" in the form of a cloud of poorly connected node pairs surrounding a denser inner core, even after senders and receivers were restricted to the most prominent users. 
+
+```{r}
+net_p
+vertices_before <- length(network.vertex.names(net_p))
+
+```
 
 
+```{r}
+delete.vertices(net_p, isolates(net_p))
+vertices_after <- length(network.vertex.names(net_p))
+ggnet(net_p, size = 0.1, alpha = 0.84)
+
+```
+
+Removing those outliers brings the core network into sharper relief by reducing the number of vertices, from `r vertices_before` to `r vertices_after`.
 
 
+### Machine learning decomposition of the core network
 
-
+Although the network has been reduced by inspection, the visualization of the result is ambiguous as to clusters of similar senders/recievers (nodes/edges). To validate the results, a machine learning tool is indicated.  The [latentnet] package has been selected for that task. An [accesable] description of that package, as well as a more [theoretical] paper are available for orientation. 
 
 
 
@@ -308,7 +337,7 @@ These `r length(net_p$mel)` users are connected to `r length(vertices) - length(
 
 ### Information sought
 
-Prior to the investigation that resulted in the [staff] report, FERC received a report from the California agency responsible for operating the electric energy exchange that FERC was concerned that Enron had been manipulating.^[Frank A. Wolak, Chairman, Market Surveillance Committee of California Independent System Operator, *Report on Redesign of California Real-Time Energy and Ancillary Services Markets* dated October 18, 1999], which will be referred to as the [Wolak report].
+Prior to the investigation that resulted in the an initial staff report, FERC received a report from the California agency responsible for operating the electric energy exchange that FERC was concerned that the market had been manipulating.^[Frank A. Wolak, Chairman, Market Surveillance Committee of California Independent System Operator, *Report on Redesign of California Real-Time Energy and Ancillary Services Markets* dated October 18, 1999], which will be referred to as the [Wolak report].
 
 The [Wolak report] was prepared before FERC began its investigation, did not rely on the Enron email corpus^[The report does not even name Enron.] and provides a lengthy analysis of the indicia of the exercise of market power in the California electricity wholesale market. A topical and keyword digest was prepared, as discussed below, to identify subjects of interest in the corpus.
 
@@ -351,6 +380,8 @@ For purposes of this paper, the resulting tibble has been serialized to an `Rda`
 
 [md5]:https://en.wikipedia.org/wiki/MD5
 
+[latentnet]:Krivitsky PN, Handcock MS (2008). “Fitting position latent cluster models for social networks with latentnet.” _Journal of Statistical Software_, https://CRAN.R-project.org/package=latentnet
+
 [published]:https://www.cs.cmu.edu/~./enron/
 
 [redacted]:https://www.cs.cmu.edu/~./enron/DELETIONS.txt
@@ -361,3 +392,8 @@ For purposes of this paper, the resulting tibble has been serialized to an `Rda`
 
 [Keijo Ruohonen]:http://math.tut.fi/~ruohonen/GT_English.pdf
 
+[letentnet paper]:https://www.jstatsoft.org/article/view/v024i05
+
+[theoretical]:https://www.jstatsoft.org/article/view/v024i05
+
+[accessible]:https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2831261/

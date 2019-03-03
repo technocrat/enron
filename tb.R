@@ -4,6 +4,7 @@ library(broom)
 library(GGally)
 library(here)
 library(statnet)
+library(latentnet)
 library(tidytext)
 library(tidyverse)
 library(tm)
@@ -234,71 +235,32 @@ centrals <- prominence$node
 # save(centrals, file = "centrals.Rda")
 
 
-# Sun Feb 24 22:29:51 2019 ------------------------------
-# g_enron filted for highest 16 users based on centrality
-#
-net_p <- network(incrowd, matrix.type = "edgelist")
-vertices <- network.vertex.names(net_p)
 
-netmat <- g_enron %>% filter(f_userid == 1648 | t_userid == 1648)
-net1648 <- network(netmat, matrix.type = "edgelist")
-vertices <- network.vertex.names(net1648)
-ggnet(net1648, size = 0.1, alpha = 0.75)
-
-egomap <- function(x) {
-  netmat <-g_enron %>% filter(f_userid == x | t_userid == x)
-  e_net <- network(netmat, matrix.type = "edgelist")
-  vertices <- network.vertex.names(e_net)
-  ggnet(e_net, size = 0.1, alpha = 0.84)
-}
-
-prominent <- g_enron %>% filter(f_userid %in% centrals | t_userid %in% centrals)
-senders <- prominent %>% filter(f_userid %in% centrals) %>% group_by(f_userid) %>% count() %>% arrange(desc(n))
-
-recipients <- prominent %>% filter(t_userid %in% centrals) %>% group_by(t_userid) %>% count() %>% arrange(desc(n))
-
-inout <- bind_cols(sender, recipients)
-
-netmat <- incrowd %>% select(t_userid, f_userid)
+netmat <- prominent %>% select(t_userid, f_userid)
 net_p <- network(netmat, matrix.type = "edgelist")
 vertices <- network.vertex.names(net_p)
 ggnet(net_p, size = 0.1, alpha = 0.84)
 delete.vertices(net_p, isolates(net_p))
 ggnet(net_p, size = 0.1, alpha = 0.84)
-as.sociomatrix(net_p)
-> as.sociomatrix(net_p)
-```ls
-1717 2055 2168 2276 2310 2575 2576 2946 3146 3152 3255 3421
-1717    0    1    0    1    1    0    0    0    1    0    0    0
-2055    1    0    0    0    0    0    0    0    0    0    0    0
-2168    0    0    0    0    0    0    0    0    0    1    0    0
-2276    1    0    0    0    1    0    0    0    1    0    1    0
-2310    0    0    0    0    0    0    0    1    0    0    0    0
-2575    0    0    0    0    0    0    0    0    1    0    0    0
-2576    0    0    0    0    0    0    0    0    0    0    0    1
-2946    0    0    0    1    0    0    0    0    1    0    1    0
-3146    1    0    0    1    0    1    0    1    0    0    1    0
-3152    0    0    0    0    0    0    0    0    0    0    0    0
-3255    1    0    0    1    0    0    0    1    1    0    0    0
-3421    0    0    0    0    0    0    1    0    0    0    0    0
-```
-#NB: 2168  should be isolate
-# 2168 has an in from 3152
 
-c_enron <- c_enron %>% mutate(central = ifelse((f_userid %in% centrals | t_userid %in% centrals), "C", "NC"))
-netmat <- c_enron %>% select(t_userid, f_userid)
-net_c <- network(netmat, matrix.type = "edgelist") # need to filter empty payloads
-vertices <- network.vertex.names(net_c)
-delete.vertices(net_c, isolates(net_c))
+library(latentnet)
+net_p.fit <- ergmm(net_p ~euclidean(d = 2, G = 3), verbose = TRUE)
+summary(net_p.fit)
+plot(net_p.fit)
 
-ggnet2(net, size = 1, color = "central", palette = c("red", "blue")))
+plot(net_p.fit)
+plot(net_p.fit, pie = TRUE, vertex.cex = 2.5)
 
 
-ggnet2(net_c, node.size = 0.75, node.color = "blue", edge.size = 1, edge.color = "grey")
-ggnet2(net, size = 1, color = "central", palette = c("red", "blue")))
-ggnet2(net_c, size = "degree", size.cut = 5)
-
-cpd <-cutpoints(net_c,return.indicator=TRUE)
-gplot(net_c,vertex.col=2+cpd)
 
 
+plot(net_p.fit, what = "pmean")
+net_p.sim <- simulate(net_p.fit)
+net_p.par <- attr(net_.sim, "ergmm.par")
+summary(net_p.par.gof)
+net_p.fit.gof <- gof(net_p.fit)
+
+plot(net_p.fit, pie=TRUE,labels=TRUE)  # <---------------------------------GOLD
+
+plot(net_p.fit, what="cloud", rand.eff="receiver", Z.ref=Z.ref, Z.K.ref=Z.K.ref) #<========================gold
+plot(net_p.fit, what="density", rand.eff="receiver", Z.ref=Z.ref, Z.K.ref=Z.K.ref) <=======================gold
