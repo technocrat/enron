@@ -1,4 +1,4 @@
-library(broom)
+instlibrary(broom)
 library(GGally)
 library(here)
 library(statnet)

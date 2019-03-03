@@ -265,3 +265,40 @@ vertices <- network.vertex.names(net_p)
 ggnet(net_p, size = 0.1, alpha = 0.84)
 delete.vertices(net_p, isolates(net_p))
 ggnet(net_p, size = 0.1, alpha = 0.84)
+as.sociomatrix(net_p)
+> as.sociomatrix(net_p)
+```ls
+1717 2055 2168 2276 2310 2575 2576 2946 3146 3152 3255 3421
+1717    0    1    0    1    1    0    0    0    1    0    0    0
+2055    1    0    0    0    0    0    0    0    0    0    0    0
+2168    0    0    0    0    0    0    0    0    0    1    0    0
+2276    1    0    0    0    1    0    0    0    1    0    1    0
+2310    0    0    0    0    0    0    0    1    0    0    0    0
+2575    0    0    0    0    0    0    0    0    1    0    0    0
+2576    0    0    0    0    0    0    0    0    0    0    0    1
+2946    0    0    0    1    0    0    0    0    1    0    1    0
+3146    1    0    0    1    0    1    0    1    0    0    1    0
+3152    0    0    0    0    0    0    0    0    0    0    0    0
+3255    1    0    0    1    0    0    0    1    1    0    0    0
+3421    0    0    0    0    0    0    1    0    0    0    0    0
+```
+#NB: 2168  should be isolate
+# 2168 has an in from 3152
+
+c_enron <- c_enron %>% mutate(central = ifelse((f_userid %in% centrals | t_userid %in% centrals), "C", "NC"))
+netmat <- c_enron %>% select(t_userid, f_userid)
+net_c <- network(netmat, matrix.type = "edgelist") # need to filter empty payloads
+vertices <- network.vertex.names(net_c)
+delete.vertices(net_c, isolates(net_c))
+
+ggnet2(net, size = 1, color = "central", palette = c("red", "blue")))
+
+
+ggnet2(net_c, node.size = 0.75, node.color = "blue", edge.size = 1, edge.color = "grey")
+ggnet2(net, size = 1, color = "central", palette = c("red", "blue")))
+ggnet2(net_c, size = "degree", size.cut = 5)
+
+cpd <-cutpoints(net_c,return.indicator=TRUE)
+gplot(net_c,vertex.col=2+cpd)
+
+
