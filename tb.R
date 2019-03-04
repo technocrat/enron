@@ -1,6 +1,7 @@
 # syntax to load Rda from S3
 setwd("projects/enron")
 library(broom)
+library(cody)
 library(GGally)
 library(here)
 library(statnet)
@@ -243,24 +244,36 @@ ggnet(net_p, size = 0.1, alpha = 0.84)
 delete.vertices(net_p, isolates(net_p))
 ggnet(net_p, size = 0.1, alpha = 0.84)
 
-library(latentnet)
-net_p.fit <- ergmm(net_p ~euclidean(d = 2, G = 3), verbose = TRUE)
-summary(net_p.fit)
-plot(net_p.fit)
-
-plot(net_p.fit)
-plot(net_p.fit, pie = TRUE, vertex.cex = 2.5)
-
-
-
-
+# Sun Mar  3 15:58:10 2019 ------------------------------
+# saved net_p_fit object in error
+# net_p.fit <- ergmm(net_p ~euclidean(d = 2, G = 3), verbose = TRUE)
+# summary(net_p.fit)
+# plot(net_p.fit)
+#
+# plot(net_p.fit, pie = TRUE, vertex.cex = 2.5)
+#
 plot(net_p.fit, what = "pmean")
 net_p.sim <- simulate(net_p.fit)
-net_p.par <- attr(net_.sim, "ergmm.par")
-summary(net_p.par.gof)
+net_p.par <- attr(net_p.sim, "ergmm.par")
 net_p.fit.gof <- gof(net_p.fit)
+summary(net_p.par.gof)
 
-plot(net_p.fit, pie=TRUE,labels=TRUE)  # <---------------------------------GOLD
+plot(net_p.fit, pie=TRUE)
+plot(net_p.fit, what="cloud", rand.eff="receiver", Z.ref=Z.ref, Z.K.ref=Z.K.ref)
+plot(net_p.fit, what="density", rand.eff="receiver", Z.ref=Z.ref, Z.K.ref=Z.K.ref)
 
-plot(net_p.fit, what="cloud", rand.eff="receiver", Z.ref=Z.ref, Z.K.ref=Z.K.ref) #<========================gold
-plot(net_p.fit, what="density", rand.eff="receiver", Z.ref=Z.ref, Z.K.ref=Z.K.ref) <=======================gold
+net_p.gof <- gof(net_p.fit)
+net_p.gof
+par(mfrow=c(1,3))
+par(oma=c(0.5,2,1,0.5))
+plot(net_p.gof, plotlogodds=TRUE)
+
+net_p_vertices <- network.vertex.names(net_p)
+clusters_p <- net_p.fit$start$Z.K
+cluster <- enframe(clusters_p) %>% rename(n_cluster = value)
+net_p_vertices <- enframe(net_p_vertices) %>% rename(f_userid = value)
+cluster_p <- left_join(net_p_vertices, cluster)
+n_enron <- prominent %>% left_join(cluster_p, by = "f_userid")
+# Cluster by sender; that's where the payload is
+
+

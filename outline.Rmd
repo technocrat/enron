@@ -14,13 +14,16 @@ output:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, warning=FALSE, message=FALSE)
-                      
+suppressPackageStartupMessages(library(latentnet))
 suppressPackageStartupMessages(library(network))
-suppressPackageStartupMessages(library(rebus))
+#suppressPackageStartupMessages(library(rebus))
 suppressPackageStartupMessages(library(statnet))
 suppressPackageStartupMessages(library(tidyverse))
 suppressPackageStartupMessages(library(tm))
 #suppressPackageStartupMessages(library(UserNetR))
+library(coda)
+
+library(latentnet)
 library(network)
 library(tidyverse)
 library(GGally)
@@ -308,16 +311,16 @@ net_p <- network(netmat, matrix.type = "edgelist")
 vertices <- network.vertex.names(net_p)
 ggnet(net_p, size = 0.1, alpha = 0.84)
 ```
+
 This visualization, like original graph, shows "noise" in the form of a cloud of poorly connected node pairs surrounding a denser inner core, even after senders and receivers were restricted to the most prominent users. 
 
 ```{r}
 net_p
 vertices_before <- length(network.vertex.names(net_p))
-
 ```
 
 
-```{r}
+```{r} 
 delete.vertices(net_p, isolates(net_p))
 vertices_after <- length(network.vertex.names(net_p))
 ggnet(net_p, size = 0.1, alpha = 0.84)
@@ -329,8 +332,66 @@ Removing those outliers brings the core network into sharper relief by reducing 
 
 ### Machine learning decomposition of the core network
 
-Although the network has been reduced by inspection, the visualization of the result is ambiguous as to clusters of similar senders/recievers (nodes/edges). To validate the results, a machine learning tool is indicated.  The [latentnet] package has been selected for that task. An [accesable] description of that package, as well as a more [theoretical] paper are available for orientation. 
+Although the network has been reduced by inspection, the visualization of the result is ambiguous as to clusters of similar senders/recievers (nodes/edges). To validate the results, a machine learning tool is indicated.  The [latentnet] package was selected for that task. An [accessible] description of that package, as well as a more [theoretical] paper are available for orientation. 
 
+The package applies exponential random graph modeling to the vertices, edges and optionally their attrtibutes to recursively dervive graph characteristics that are impractical to extract otherwise, due to the interdependence of graph measures. 
+
+#### Model creation
+
+The first step is to fit a model to a network object:
+
+      net_p.fit <- ergmm(net_p ~ euclidean(d=2, G=3), verbose = TRUE) # up to 30 minutes for 250 nodes
+      Generating initial values for MCMC:
+      Computing geodesic distances... Finished.
+      Computing MDS locations... Finished.
+      Computing other initial values... Finished.
+      Finding the conditional posterior mode... Finished.
+      Burning in... Finished.
+      Starting sampling run... Finished.
+      Post-processing the MCMC output:
+      Performing label-switching... Finished.
+      Fitting the MKL locations... Finished.
+      Fitting MBC conditional on MKL locations... Finished.
+
+The arguments to `ergmm` specify a negative Euclidian distance in 2-space for a three cluster grouping. The algorithm performs a Markov chain Monte Carlo simulation, the  absolute row/column differences within the adjacency matrix to fit the Minimum Kullback-Liebler divergence statistic to produce model based clustering of the vertices in the graph.
+
+```{r}
+library(latentnet)
+library(coda)
+load("net_p.fit.Rda")
+summary(net_p.fit)
+```
+
+
+#### Model Diagnostics
+
+Graphs do not uniformly converge under the `ergmm` function call. To test this, a diagnostic is available to detect failure of the Markov chain Monte Carlo simulation to converge and to detect autocorrelation effects. One section provides an initial and lag 10 covariance matrix of the sampling. 
+
+```{r}
+library(latentnet)
+library(coda)
+load("net_p.fit.Rda")
+mcmc.diagnostics(net_p.fit, which.diags = c("cor", "acf", "raftery"))
+```
+
+![Trace diagnostic of net_p.fit](net_p.fit_trace.png)
+#### Goodness of fit
+
+```{r}
+net_p.gof <- gof(net_p.fit)
+net_p.gof
+par(mfrow=c(1,3))
+par(oma=c(0.5,2,1,0.5))
+plot(net_p.gof, plotlogodds=TRUE)
+```
+
+#### Visualization of model clusters, position within sample space and density
+
+```{r}
+plot(net_p.fit, pie=TRUE)
+plot(net_p.fit, what="cloud", rand.eff="receiver", Z.ref=Z.ref, Z.K.ref=Z.K.ref)
+plot(net_p.fit, what="density", rand.eff="receiver", Z.ref=Z.ref, Z.K.ref=Z.K.ref)
+```
 
 
 ## Natural language processing
