@@ -273,7 +273,8 @@ clusters_p <- net_p.fit$start$Z.K
 cluster <- enframe(clusters_p) %>% rename(n_cluster = value)
 net_p_vertices <- enframe(net_p_vertices) %>% rename(f_userid = value)
 cluster_p <- left_join(net_p_vertices, cluster)
-n_enron <- prominent %>% left_join(cluster_p, by = "f_userid")
-# Cluster by sender; that's where the payload is
+n_enron <- prominent %>% left_join(cluster_p, by = "f_userid") %>% select(-name) %>% rename(f_cluster = n_cluster)
+cluster_p1 <- cluster_p %>% rename(t_userid = f_userid)
+n_enron <- n_enron %>% left_join(cluster_p1, by = "t_userid") %>% select(-name) %>% rename(t_cluster = n_cluster)
 
 
