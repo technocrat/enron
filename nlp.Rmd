@@ -1,0 +1,30 @@
+---
+title: "nlp.Rdm"
+output: html_document
+---
+options(java.parameters = "-Xmx8000m")
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)\
+suppressPackageStartupMessages(library(tidyverse))
+suppressPackageStartupMessages(library(tm))
+library(coda)
+library(cleanNLP)
+library(tidyverse)
+library(GGally)
+library(tm)
+library(tidyr)
+library(tidytext)
+'%out%' <- Negate ('%in%')
+load("n_enron.Rda")
+data(stop_words)
+
+```
+
+
+
+n1_text <- paste(n1_text, collapse = " ")
+n2_text <- paste(n2_text, collapse = " ")
+n3_text <- paste(n3_text, collapse = " ")
+
+sww
+
