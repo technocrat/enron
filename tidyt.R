@@ -1,8 +1,10 @@
 setwd("projects/enron")
 library(dplyr)
 library(ggplot2)
+library(magrittr)
 library(scales)
 library(stringr)
+library(tibble)
 library(tidyr)
 library(tidytext)
 
@@ -21,42 +23,97 @@ colnames(new_stops) <- c("word", "lexicon")
 new_stops <- as_tibble(new_stops)
 stop_words <- rbind(stop_words, new_stops)
 
-
+n_text  <- n_enron %>% select(payload)
 n1_text <- n_enron %>% filter(f_cluster == 1) %>% select(payload)
 n2_text <- n_enron %>% filter(f_cluster == 2) %>% select(payload)
 n3_text <- n_enron %>% filter(f_cluster == 3) %>% select(payload)
 
-n1_words <- n1_text %>%
-  unnest_tokens(word, payload) %>%
-  anti_join(stop_words) %>%
-  filter(word != str_match_all(word,"^\\d+"))
+n_words <- n_text                             %>%
+  unnest_tokens(word, payload)                %>%
+  anti_join(stop_words)                       %>%
+  filter(word != str_match_all(word,"\\d+"))  %>%
+  filter(word != str_match_all(word,"\\d+.\\d+"))
 
-n2_words <- n2_text %>%
-  unnest_tokens(word, payload) %>%
-  anti_join(stop_words) %>%
-  filter(word != str_match_all(word,"^\\d+"))
+n1_words <- n1_text                           %>%
+  unnest_tokens(word, payload)                %>%
+  anti_join(stop_words)                       %>%
+  filter(word != str_match_all(word,"\\d+"))  %>%
+  filter(word != str_match_all(word,"\\d+.\\d+"))
 
+n2_words <- n2_text                           %>%
+  unnest_tokens(word, payload)                %>%
+  anti_join(stop_words)                       %>%
+  filter(word != str_match_all(word,"\\d+"))  %>%
+  filter(word != str_match_all(word,"\\d+.\\d+"))
 
-n3_words <- n3_text %>%
-  unnest_tokens(word, payload) %>%
-  anti_join(stop_words) %>%
-  filter(word != str_match_all(word,"^\\d+"))
+n3_words <- n3_text                           %>%
+  unnest_tokens(word, payload)                %>%
+  anti_join(stop_words)                       %>%
+  filter(word != str_match_all(word,"\\d+"))  %>%
+  filter(word != str_match_all(word,"\\d+.\\d+"))
 
+n_dist  <- n_words  %>% distinct()
+n1_dist <- n1_words %>% distinct()
+n2_dist <- n2_words %>% distinct()
+n3_dist <- n3_words %>% distinct()
 
-n1_words %>% count(word, sort = TRUE) %>% print(n = 25)
-n2_words %>% count(word, sort = TRUE) %>% print(n = 25)
-n3_words %>% count(word, sort = TRUE) %>% print(n = 25)
+n1_vocab_n2 <- setdiff(n1_dist, n2_dist)
+n1_vocab    <- setdiff(n1_vocab_n2, n3_dist)
+n2_vocab_n1 <- setdiff(n2_dist, n1_dist)
+n2_vocab    <- setdiff(n2_vocab_n1, n3_dist)
+n12_vocab   <- union(n1_vocab, n2_vocab)
+n3_vocab    <- setdiff(n3_dist, n12_vocab)
+n123_vocab  <- union(n1_vocab, n2_vocab, n3_vocab)
+n_vocab     <- setdiff(n_dist, n123_vocab)
+
+n_dist_bag  <- n_words  %>%
+  mutate(Cluster0 = word %in% n_vocab$word)   %>%
+  filter(Cluster0 == TRUE)
+
+n1_dist_bag <- n1_words %>%
+  mutate(Cluster1 = word %in% n1_vocab$word)  %>%
+  filter(Cluster1 == TRUE)
+
+n2_dist_bag <- n2_words %>%
+  mutate(Cluster2 = word %in% n2_vocab$word)  %>%
+  filter(Cluster2 == TRUE)
+
+n3_dist_bag <- n3_words %>%
+  mutate(Cluster3 = word %in% n3_vocab$word)  %>%
+  filter(Cluster3 == TRUE)
+par(mfrow=c(2,2))
+n_words %>%
+  count(word)                       %>%
+  filter(n > 100)                    %>%
+  mutate(word = reorder(word, n))   %>%
+  arrange(desc(n))                  %>%
+  ggplot(aes(word,n))                 	+
+  geom_col()                          	+
+  xlab("All Clusters Top Common Words")	+
+  ylab("Occuring 100 times or more")   	+
+  coord_flip()
 
 n1_words %>%
-  count(word, sort = TRUE)          %>%
+  count(word)                       %>%
   filter(n > 75)                    %>%
   mutate(word = reorder(word, n))   %>%
+  arrange(desc(n))                  %>%
   ggplot(aes(word,n))               +
   geom_col()                        +
-  xlab("Cluster 1 Top Words")       +
+  xlab("All Cluster 1 Top Words")       +
   ylab("Occuring 75 times or more") +
   coord_flip()
 
+n1_dist_bag                         %>%
+  count(word)                       %>%
+  filter(n > 25)                    %>%
+  mutate(word = reorder(word, n))   %>%
+  arrange(desc(n))                  %>%
+  ggplot(aes(word,n))               +
+  geom_col()                        +
+  xlab("Cluster 1 Only Top Words")  +
+  ylab("Occuring 25 times or more") +
+  coord_flip()
 
 n2_words %>%
   count(word, sort = TRUE)          %>%
@@ -64,8 +121,19 @@ n2_words %>%
   mutate(word = reorder(word, n))   %>%
   ggplot(aes(word,n))               +
   geom_col()                        +
-  xlab("Cluster 2 Top Words")       +
+  xlab("All Cluster 2 Top Words")       +
   ylab("Occuring 25 times or more") +
+  coord_flip()
+
+n2_dist_bag                         %>%
+  count(word)                       %>%
+  filter(n > 5)                     %>%
+  mutate(word = reorder(word, n))   %>%
+  arrange(desc(n))                  %>%
+  ggplot(aes(word,n))               +
+  geom_col()                        +
+  xlab("Cluster 2 Only Top Words")  +
+  ylab("Occuring 5 times or more") +
   coord_flip()
 
 n3_words %>%
@@ -74,8 +142,19 @@ n3_words %>%
   mutate(word = reorder(word, n))   %>%
   ggplot(aes(word,n))               +
   geom_col()                        +
-  xlab("Cluster 3 Top Words")       +
+  xlab("All Cluster 3 Top Words")       +
   ylab("Occuring 50 times or more") +
+  coord_flip()
+
+n3_dist_bag                         %>%
+  count(word)                       %>%
+  filter(n > 35)                    %>%
+  mutate(word = reorder(word, n))   %>%
+  arrange(desc(n))                  %>%
+  ggplot(aes(word,n))               +
+  geom_col()                        +
+  xlab("Cluster 3 Only Top Words")  +
+  ylab("Occuring 25 times or more") +
   coord_flip()
 
 # Wed Mar  6 20:36:18 2019 ------------------------------

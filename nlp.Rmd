@@ -4,59 +4,178 @@ output: html_document
 ---
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-suppressPackageStartupMessages(library(tidyverse))
-suppressPackageStartupMessages(library(tm))
 library(dplyr)
 library(ggplot2)
+library(magrittr)
 library(scales)
 library(stringr)
+library(tibble)
 library(tidyr)
 library(tidytext)
+
 
 '%out%' <- Negate ('%in%')
 load("n_enron.Rda")
 data(stop_words)
 
-```
-
-
-## Natural language processing
-
-### Exploratory data analysis
-
-```{r}
-n1_text <- n_enron %>% filter(f_cluster == 1) %>% select(payload)
-n2_text <- n_enron %>% filter(f_cluster == 2) %>% select(payload)
-n3_text <- n_enron %>% filter(f_cluster == 3) %>% select(payload)
-n1_words <- n1_text %>% unnest_tokens(word, payload)
-n2_words <- n2_text %>% unnest_tokens(word, payload)
-n3_words <- n3_text %>% unnest_tokens(word, payload)
-```
-
-Cluster 1 has the most words, `r nrow(n1_words)`, followed by Cluster 3 with `r nrow((n3_words))` and Cluster 2 with `r nrow(n2_words)`.
-
-Superficially, there is little difference among the clusters with respect to their ten most frequent words.
-
-```{r}
-n1_words %>% count(word, sort = TRUE)
-n2_words %>% count(word, sort = TRUE)
-n3_words %>% count(word, sort = TRUE)
-```
-
-With only two exceptions, the top words are among the most common in English. The two exceptions are `ect` in Cluster 1 and `kim` in Cluster 2. From the original data scrub `ect` is part of the internal email address system in use in the earlier emails and there may be a high number of persons named `kim` or `kim` is referred to often.
-
-Looking at the 100 most frequent words, the pattern is similar. There are some additional first names, the term `enronxgate`. the word `gas` and the number `713`. The first word is also an older email component and `gas` was one of Enron's busineses. The number is simply the area code for Houston, where Enron's headquarters were located.
-
-Some filtering is needed. This starts with subtracting a list of the most common words, such as *the* (**stopwords**). There are a variety of stopword lists. Some may be under-inclusive, removing only the most common parts of speech, while others may be over-inclusive, removing words that should be kept. For example, the word `not` often appears on lists of stopwords but is an important term in doing sentiment analysis using phrases -- *not good* has a difference valence that *[blank] good*.
-
-The `stop_word` data from the `tidytext` package was hand edited to exempt the following list of works:
-
-```{r}
 exempt_stopwords <- enframe(c("against", "all", "allow", "allows", "always", "awfully", "beforehand", "behind", "below", "better", "big", "can't", "cannot", "cant", "case", "cases", "downwards", "except", "gives", "good", "great", "highest", "hopefully", "immediate", "might", "necessary", "not", "nowhere", "numbers", "otherwise", "point", "serious", "seriously", "state", "states", "unfortunately", "value", "worked", "working", "zero"))
 colnames(exempt_stopwords) <- c("line", "word")
 stop_words <- anti_join(stop_words, exempt_stopwords)
+add_stops <- c("ect"exit, "hou", "enronxgate")
+lexicon <- c("user", "user", "user")
+new_stops <- cbind(add_stops, lexicon)
+colnames(new_stops) <- c("word", "lexicon")
+new_stops <- as_tibble(new_stops)
+stop_words <- rbind(stop_words, new_stops)
+
+n_text  <- n_enron %>% select(payload)
+n1_text <- n_enron %>% filter(f_cluster == 1) %>% select(payload)
+n2_text <- n_enron %>% filter(f_cluster == 2) %>% select(payload)
+n3_text <- n_enron %>% filter(f_cluster == 3) %>% select(payload)
+
+n_words <- n_text                             %>%
+  unnest_tokens(word, payload)                %>%
+  anti_join(stop_words)                       %>%
+  filter(word != str_match_all(word,"\\d+"))  %>%
+  filter(word != str_match_all(word,"\\d+.\\d+"))
+
+n1_words <- n1_text                           %>%
+  unnest_tokens(word, payload)                %>%
+  anti_join(stop_words)                       %>%
+  filter(word != str_match_all(word,"\\d+"))  %>%
+  filter(word != str_match_all(word,"\\d+.\\d+"))
+
+n2_words <- n2_text                           %>%
+  unnest_tokens(word, payload)                %>%
+  anti_join(stop_words)                       %>%
+  filter(word != str_match_all(word,"\\d+"))  %>%
+  filter(word != str_match_all(word,"\\d+.\\d+"))
+
+n3_words <- n3_text                           %>%
+  unnest_tokens(word, payload)                %>%
+  anti_join(stop_words)                       %>%
+  filter(word != str_match_all(word,"\\d+"))  %>%
+  filter(word != str_match_all(word,"\\d+.\\d+"))
+
+n_dist  <- n_words  %>% distinct()
+n1_dist <- n1_words %>% distinct()
+n2_dist <- n2_words %>% distinct()
+n3_dist <- n3_words %>% distinct()
+
+n1_vocab_n2 <- setdiff(n1_dist, n2_dist)
+n1_vocab    <- setdiff(n1_vocab_n2, n3_dist)
+n2_vocab_n1 <- setdiff(n2_dist, n1_dist)
+n2_vocab    <- setdiff(n2_vocab_n1, n3_dist)
+n12_vocab   <- union(n1_vocab, n2_vocab)
+n3_vocab    <- setdiff(n3_dist, n12_vocab)
+n123_vocab  <- union(n1_vocab, n2_vocab, n3_vocab)
+n_vocab     <- setdiff(n_dist, n123_vocab)
+
+n_dist_bag  <- n_words  %>%
+  mutate(Cluster0 = word %in% n_vocab$word)   %>%
+  filter(Cluster0 == TRUE)
+
+n1_dist_bag <- n1_words %>%
+  mutate(Cluster1 = word %in% n1_vocab$word)  %>%
+  filter(Cluster1 == TRUE)
+
+n2_dist_bag <- n2_words %>%
+  mutate(Cluster2 = word %in% n2_vocab$word)  %>%
+  filter(Cluster2 == TRUE)
+
+n3_dist_bag <- n3_words %>%
+  mutate(Cluster3 = word %in% n3_vocab$word)  %>%
+  filter(Cluster3 == TRUE)
+
+n_words %>%
+  count(word)                       %>%
+  filter(n > 100)                    %>%
+  mutate(word = reorder(word, n))   %>%
+  arrange(desc(n))                  %>%
+  ggplot(aes(word,n))                 	+
+  geom_col()                          	+
+  xlab("All Clusters Top Common Words")	+
+  ylab("Occuring 100 times or more")   	+
+  coord_flip()
+
+n1_words %>%
+  count(word)                       %>%
+  filter(n > 75)                    %>%
+  mutate(word = reorder(word, n))   %>%
+  arrange(desc(n))                  %>%
+  ggplot(aes(word,n))               +
+  geom_col()                        +
+  xlab("All Cluster 1 Top Words")       +
+  ylab("Occuring 75 times or more") +
+  coord_flip()
+
+n1_dist_bag                         %>%
+  count(word)                       %>%
+  filter(n > 25)                    %>%
+  mutate(word = reorder(word, n))   %>%
+  arrange(desc(n))                  %>%
+  ggplot(aes(word,n))               +
+  geom_col()                        +
+  xlab("Cluster 1 Only Top Words")  +
+  ylab("Occuring 25 times or more") +
+  coord_flip()
+
+n2_words %>%
+  count(word, sort = TRUE)          %>%
+  filter(n > 25)                    %>%
+  mutate(word = reorder(word, n))   %>%
+  ggplot(aes(word,n))               +
+  geom_col()                        +
+  xlab("All Cluster 2 Top Words")       +
+  ylab("Occuring 25 times or more") +
+  coord_flip()
+
+n2_dist_bag                         %>%
+  count(word)                       %>%
+  filter(n > 5)                     %>%
+  mutate(word = reorder(word, n))   %>%
+  arrange(desc(n))                  %>%
+  ggplot(aes(word,n))               +
+  geom_col()                        +
+  xlab("Cluster 2 Only Top Words")  +
+  ylab("Occuring 5 times or more") +
+  coord_flip()
+
+n3_words %>%
+  count(word, sort = TRUE)          %>%
+  filter(n > 50)                    %>%
+  mutate(word = reorder(word, n))   %>%
+  ggplot(aes(word,n))               +
+  geom_col()                        +
+  xlab("All Cluster 3 Top Words")       +
+  ylab("Occuring 50 times or more") +
+  coord_flip()
+
+n3_dist_bag                         %>%
+  count(word)                       %>%
+  filter(n > 35)                    %>%
+  mutate(word = reorder(word, n))   %>%
+  arrange(desc(n))                  %>%
+  ggplot(aes(word,n))               +
+  geom_col()                        +
+  xlab("Cluster 3 Only Top Words")  +
+  ylab("Occuring 25 times or more") +
+  coord_flip()
+
+
 ```
 
+The tibble extracted from the graph analysis contains two fields that will be used to determine word usage differences, if any, among the three graph clusters, `payload` (the original content of the email) and `f_cluster` (the cluster to which the email sender was assigned).
+
+`r n_enron`
+
+The dataset consists of `r nrow(n_enron)` records. 
+
+Any collection of natural language contains many high-frequency words that obscure differences. These words, such as *a, as, an, and, of, this, that, which, what* and the like are censored from analysis along with numerals.^[The entire original contents are retained in the original `n_enron` object, however.]
+
+There are a variety of stopword lists. Some may be under-inclusive, removing only the most common parts of speech, while others may be over-inclusive, removing words that should be kept. For example, the word `not` often appears on lists of stopwords but is an important term in doing sentiment analysis using phrases -- *not good* has a difference valence than *[blank] good*.
+
+The `stop_word` data from the `tidytext` package was hand edited to exempt the following list of words:
 
 * against
 * all
@@ -99,80 +218,40 @@ stop_words <- anti_join(stop_words, exempt_stopwords)
 * working
 * zero
 
-and to add `ect`, `hou` and `enronxgate`.
+and to add `ect`, `hou` and `enronxgate`, which from data cleansing done originally were found to be email address components from an older email system.
+
+The `r nrow(n_enron` mails contail a total of `r nrow(n_words)` words, of which `r nrow(n_dist)` aree distinct.
+
+As a whole, the following chart shows the most frequent words in `n_enron` that occur 25 or more times.
 
 ```{r}
-                       
-add_stops <- c("ect", "hou", "enronxgate")
-lexicon <- c("user", "user", "user")
-new_stops <- cbind(add_stops, lexicon)
-colnames(new_stops) <- c("word", "lexicon")
-new_stops <- as_tibble(new_stops)
-stop_words <- rbind(stop_words, new_stops)
+n_text  <- n_enron %>% select(payload)
+
+n_words <- n_text                             %>%
+  unnest_tokens(word, payload)                %>%
+  anti_join(stop_words)                       %>%
+  filter(word != str_match_all(word,"\\d+"))  %>%
+  filter(word != str_match_all(word,"\\d+.\\d+"))
+
+n_dist_bag  <- n_words  %>%
+  mutate(Cluster0 = word %in% n_vocab$word)   %>%
+  filter(Cluster0 == TRUE)
+n_dist_bag                          %>%
+  count(word)                       %>%
+  filter(n > 25)                    %>%
+  mutate(word = reorder(word, n))   %>%
+  arrange(desc(n))                  %>%
+  ggplot(aes(word,n))               +
+  geom_col()                        +
+  xlab("Top words in data set	")  +
+  ylab("Occuring 25 times or more") +
+  coord_flip()
 ```
 
 
 Here are the top words in each cluster, after removing the adjusted stopwords and numbers.
 
 
-```{r}
-n1_text <- n_enron %>% filter(f_cluster == 1) %>% select(payload)
-n2_text <- n_enron %>% filter(f_cluster == 2) %>% select(payload)
-n3_text <- n_enron %>% filter(f_cluster == 3) %>% select(payload)
-
-n1_words <- n1_text %>%
-            unnest_tokens(word, payload) %>% 
-            anti_join(stop_words) %>% 
-            filter(word != str_match_all(word,"^\\d+"))
-
-n2_words <- n2_text %>%
-            unnest_tokens(word, payload) %>% 
-            anti_join(stop_words) %>% 
-            filter(word != str_match_all(word,"^\\d+"))
-
-
-n3_words <- n3_text %>%
-            unnest_tokens(word, payload) %>% 
-            anti_join(stop_words) %>% 
-            filter(word != str_match_all(word,"^\\d+"))
-
-
-n1_words %>% count(word, sort = TRUE) %>% print(n = 25)
-n2_words %>% count(word, sort = TRUE) %>% print(n = 25)
-n3_words %>% count(word, sort = TRUE) %>% print(n = 25)
-
-n1_words %>%
-  count(word, sort = TRUE)          %>%
-  filter(n > 75)                    %>%
-  mutate(word = reorder(word, n))   %>%
-  ggplot(aes(word,n))               +
-  geom_col()                        +
-  xlab("Cluster 1 Top Words")       +
-  ylab("Occuring 75 times or more") +
-  coord_flip()
-
-
-n2_words %>%
-  count(word, sort = TRUE)          %>%
-  filter(n > 25)                    %>%
-  mutate(word = reorder(word, n))   %>%
-  ggplot(aes(word,n))               +
-  geom_col()                        +
-  xlab("Cluster 2 Top Words")       +
-  ylab("Occuring 25 times or more") +
-  coord_flip()
-
-n3_words %>%
-  count(word, sort = TRUE)          %>%
-  filter(n > 50)                    %>%
-  mutate(word = reorder(word, n))   %>%
-  ggplot(aes(word,n))               +
-  geom_col()                        +
-  xlab("Cluster 3 Top Words")       +
-  ylab("Occuring 50 times or more") +
-  coord_flip()
-
-```
 
 A cursory glance at the lists for the three clusters show differences in the sizes of vocabulary: Cluster 1 has `r nrow(n1_words)`, Cluster 2, `r nrow(n2_words)` and Cluster 3, `r nrow(n3_words)`. Cluster 2 mentioned fewer names. Cluster 3 mentions more names. Clusters 1 and 3 each have `gas` among the top terms; Cluster 2 adds `energy` and `power.`
 
@@ -201,6 +280,5 @@ cor.test(data = frequency[frequency$cluster == "Cluster 3",],
 
 cor.test(data = frequency[frequency$cluster == "Cluster 2",],
          ~ proportion + `Cluster 3`)
-
 
 ```
