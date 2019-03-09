@@ -61,10 +61,8 @@ n1_vocab_n2 <- setdiff(n1_dist, n2_dist)
 n1_vocab    <- setdiff(n1_vocab_n2, n3_dist)
 n2_vocab_n1 <- setdiff(n2_dist, n1_dist)
 n2_vocab    <- setdiff(n2_vocab_n1, n3_dist)
-n12_vocab   <- union(n1_vocab, n2_vocab)
-n3_vocab    <- setdiff(n3_dist, n12_vocab)
-n123_vocab  <- union(n1_vocab, n2_vocab, n3_vocab)
-n_vocab     <- setdiff(n_dist, n123_vocab)
+n3_vocab    <- setdiff(n3_dist, union(n1_dist, n2_dist))
+n_vocab     <- setdiff(n_dist, union(n1_vocab, n2_vocab, n3_vocab))
 
 n_dist_bag  <- n_words  %>%
   mutate(Cluster0 = word %in% n_vocab$word)   %>%
@@ -81,10 +79,10 @@ n2_dist_bag <- n2_words %>%
 n3_dist_bag <- n3_words %>%
   mutate(Cluster3 = word %in% n3_vocab$word)  %>%
   filter(Cluster3 == TRUE)
-par(mfrow=c(2,2))
+
 n_words %>%
   count(word)                       %>%
-  filter(n > 100)                    %>%
+  filter(n > 100)                   %>%
   mutate(word = reorder(word, n))   %>%
   arrange(desc(n))                  %>%
   ggplot(aes(word,n))                 	+
@@ -142,7 +140,7 @@ n3_words %>%
   mutate(word = reorder(word, n))   %>%
   ggplot(aes(word,n))               +
   geom_col()                        +
-  xlab("All Cluster 3 Top Words")       +
+  xlab("All Cluster 3 Top Words")   +
   ylab("Occuring 50 times or more") +
   coord_flip()
 
@@ -157,30 +155,35 @@ n3_dist_bag                         %>%
   ylab("Occuring 25 times or more") +
   coord_flip()
 
-# Wed Mar  6 20:36:18 2019 ------------------------------
-# This has to be refactored to create freq for all three clusters,
-#send to matrix, convert NA to zero then do cor.test
 
-frequency <- bind_rows(mutate(n1_words, cluster = "Cluster 1"),
-                       mutate(n2_words, cluster = "Cluster 2"),
-                       mutate(n3_words, cluster = "Cluster 3"))  %>%
-                       mutate(word = str_extract(word,
-                          "[a-z']+")) 	                        %>%
-                       count(cluster, word)      					   		%>%
-                       group_by(cluster)      						   		%>%
-                       mutate(proportion = n /sum(n))			   		%>%
-                       select(-n)				          				   		%>%
-                       spread(cluster, proportion)				   		%>%
-                       gather(cluster, proportion,
-                              `Cluster 2`:`Cluster 3`)
+n_clusters <- n_words %>%
+  mutate(Cluster1 = word %in% n1_dist_bag$word) %>%
+  mutate(Cluster2 = word %in% n2_dist_bag$word) %>%
+  mutate(Cluster3 = word %in% n3_dist_bag$word)
+
+n_freq <- n_clusters %>%
+  group_by(word,Cluster1,Cluster2,Cluster3) %>%
+  count(word)                               %>%
+  mutate(frequency = n/nrow(.))             %>%
+  ungroup()
+
+n_freq <- n_freq %>%
+  mutate(Cluster1 = Cluster1 * 1) %>%
+  mutate(Cluster2 = Cluster2 * 1) %>%
+  mutate(Cluster3 = Cluster3 * 1)
+
+n_freq <- n_freq %>%
+  mutate(Cluster1 = Cluster1*frequency) %>%
+  mutate(Cluster2 = Cluster2*frequency) %>%
+  mutate(Cluster3 = Cluster3*frequency)
 
 
-cor.test(data = frequency[frequency$cluster == "Cluster 2",],
-          ~ proportion + `Cluster 1`)
+n_freq <- n_freq %>%
+  mutate(Cluster1 = Cluster1*frequency) %>%
+  mutate(Cluster2 = Cluster2*frequency) %>%
+  mutate(Cluster3 = Cluster3*frequency)
 
-cor.test(data = frequency[frequency$cluster == "Cluster 2",],
-         ~ proportion + `Cluster 3`)
 
-cor.test(data = frequency[frequency$cluster == "Cluster 3",],
-         ~ proportion + `Cluster 1`)
-
+cor.test(n_freq$Cluster1,n_freq$Cluster2)
+cor.test(n_freq$Cluster1,n_freq$Cluster3)
+cor.test(n_freq$Cluster2,n_freq$Cluster3)
