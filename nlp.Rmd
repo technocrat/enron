@@ -87,6 +87,10 @@ n3_dist_bag <- n3_words %>%
   filter(Cluster3 == TRUE)
 ```
 
+## Natural language processing
+
+### Exploratory data analysis
+
 The tibble extracted from the graph analysis contains two fields that will be used to determine word usage differences, if any, among the three graph clusters, payload (the original content of the email) and f_cluster (the cluster to which the email sender was assigned).
 
 The dataset consists of `r nrow(n_enron)` records.

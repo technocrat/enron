@@ -1,0 +1,126 @@
+---
+title: "Topic extraction"
+author: "Richard Careaga"
+date: "March 9, 2019"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(broom)
+library(GGally)
+library(here)
+library(tidytext)
+library(tidyverse)
+library(tm)
+library(topicmodels)
+uri <- here("wolak.pdf")
+engine <- "pdftools"
+reader <- readPDF(engine)
+wolak <- reader(elem = list(uri = uri), language = "en", id = "id1")
+save(wolak, file = "wolak.Rda")
+wolak <- VectorSource(wolak)
+w_corpus <- VCorpus(wolak)
+w_corpus <- tm_map(w_corpus, stripWhitespace)
+w_corpus <- tm_map(w_corpus, removeWords, stopwords("english"))
+w_corpus <- tm_map(w_corpus, removeNumbers)
+w_corpus <- tm_map(w_corpus, removePunctuation, preserve_intra_word_contractions = TRUE, preserve_intra_word_dashes = TRUE)
+w_corpus <- tm_map(w_corpus, stemDocument)
+save(w_corpus, file = "w_corpus.Rda")
+w_dtm <- DocumentTermMatrix(w_corpus)
+removeSparseTerms(w_dtm, 0.2)
+save(w_dtm, file = "w_dtm.Rda")
+#findFreqTerms(w_dtm, 5)
+#findAssocs(w_dtm, "day-ahead", 0.8)
+w_ctm <- CTM(w_dtm, k = 5) # how to unpack
+w_lda <- LDA(w_dtm, control = list(alpha = 0.1), k = 5)
+w_lda_inf <- posterior(w_lda, w_dtm)
+
+term_tfidf <-
+  + tapply(w_dtm$v/row_sums(w_dtm)[w_dtm$i], w_dtm$j, mean) *
+  + log2(nDocs(w_dtm)/col_sums(w_dtm > 0))
+
+w_dtm <- w_dtm[,term_tfidf >= 0.1]
+w_dtm <- w_dtm[row_sums(w_dtm) > 0,]
+summary(col_sums(w_dtm))
+
+library("topicmodels")
+k <- 3
+SEED <- 2010
+w_TM <- list(VEM = LDA(w_dtm, k = k, control = list(seed = SEED)),VEM_fixed = LDA(w_dtm, k = k,control = list(estimate.alpha = FALSE, seed = SEED)), Gibbs = LDA(w_dtm, k = k, method = "Gibbs", control = list(seed = SEED, burnin = 1000, thin = 100, iter = 1000)), CTM = CTM(w_dtm, k = k, control = list(seed = SEED, var = list(tol = 10^-4), em = list(tol = 10^-3))))
+
+sapply(w_TM[1:2], slot, "alpha")
+
+w_Topic <- topics(w_TM[["VEM"]], 1)
+w_terms <- terms(w_TM[["VEM"]], 250)
+Terms[,1:5]
+
+w_terms <- tidy(w_dtm)
+w_terms <- w_terms %>% mutate(term = str_replace(term, "^[:punct:]", ""))
+
+# Sat Feb 23 17:05:05 2019 ------------------------------
+# can be no blank rows in dtm, but nrow must be kept in sync
+# Must also re run networks -----------------------------
+#g_enron <- g_enron %>% filter(nchar(payload) <10) # filters 692 blanks
+g_bag <- g_enron %>% select(payload)
+g <- VectorSource(g_bag)
+g_corpus <- tm_map(g_corpus, stripWhitespace)
+g_corpus <- tm_map(g_corpus, removeWords, stopwords("english"))
+g_corpus <- tm_map(g_corpus, removeNumbers)
+g_corpus <- tm_map(g_corpus, removePunctuation, preserve_intra_word_contractions = TRUE, preserve_intra_word_dashes = TRUE)
+g_corpus <- tm_map(g_corpus, stemDocument)
+#save(g_corpus, file = "g_corpus.Rda")
+g_dtm <- DocumentTermMatrix(g_corpus)
+# Sat Feb 23 15:12:14 2019 ------------------------------
+# Remove all zero rows
+rowTotals <- apply(g_dtm , 1, sum)
+g_dtm <- g_dtm[rowTotals> 0, ]
+
+removeSparseTerms(g_dtm, 0.2)
+save(g_dtm, file = "g_dtm.Rda")
+
+
+
+k <- 3
+SEED <- 2010
+g_TM <- list(VEM = LDA(g_dtm, k = k, control = list(seed = SEED)),VEM_fixed = LDA(g_dtm, k = k,control = list(estimate.alpha = FALSE, seed = SEED)), Gibbs = LDA(g_dtm, k = k, method = "Gibbs", control = list(seed = SEED, burnin = 1000, thin = 100, iter = 1000)), CTM = CTM(g_dtm, k = k, control = list(seed = SEED, var = list(tol = 10^-4), em = list(tol = 10^-3))))
+
+sapply(g_TM[1:2], slot, "alpha")
+
+
+g_terms<- terms(g_TM[["VEM"]], 250)
+
+```
+
+### Email discovery in litigation
+
+Rule 34 of [The Federal Rules of Civil Procedure] permits parties to civil litigation to require opposing parties and, in some cases, third parties, to produce evidence or materials likely to lead to the production of evidence that is stored in electronic form. Regulatory and law enforcement agencies can also require or subpoena electronic information, including email. Given the adverse interests, time and cost constraints, and the sheer volume of electronic records, including email, both sides struggle with making the process manageable. The civil courts require parties to engage in a cooperative process (see the [Sedona Conference] Report, the report of the [Advisory Committee] on the most recent changes to Rule 34 and the [ESI Guidelines] and [ESI Checklist] issued by the U.S. District Court for the Northern District of California).
+
+Among the questions of greatest important is how to separate the relevant content from the large universe of what is available. For that, participants usually turn to search terms -- keywords and phrases. (*See* recent article pointing [keyword limitations] on effective discovery.)
+
+As the author of the [keyword limitations] article points out, words have synonmyms, private meanings, multiple meanings and meanings that depend critically on context. Less appreciated, perhaps, is that most people fail to distinguish between styles of language. While it's easy to tell the difference between an inaugeral address and a sports color commentator's styles in oral communication and to distinguish a scientific paper from a young adult novel in formal written conversation, email falls in the  separate sphere of informal written language.^[*See* [McWhorter].]
+
+> Reading email is eavesdropping.
+
+
+### Information sought
+
+Prior to the investigation that resulted in the an initial staff report, FERC received a report from the California agency responsible for operating the electric energy exchange that FERC was concerned that the market had been manipulating.^[Frank A. Wolak, Chairman, Market Surveillance Committee of California Independent System Operator, *Report on Redesign of California Real-Time Energy and Ancillary Services Markets* dated October 18, 1999], which will be referred to as the [Wolak report].
+
+The [Wolak report] was prepared before FERC began its investigation, did not rely on the Enron email corpus^[The report does not even name Enron.] and provides a lengthy analysis of the indicia of the exercise of market power in the California electricity wholesale market. A topical and keyword digest was prepared, as discussed below, to identify subjects of interest in the corpus.
+
+#### Wolak keywords
+
+
+
+
+[The Federal Rules of Civil Procedure]:https://www.uscourts.gov/sites/default/files/cv_rules_eff._dec._1_2018_0.pdf
+
+[McWhorter]:https://www.ted.com/talks/john_mcwhorter_txtng_is_killing_language_jk?language=en
+
+[Sedona Conference]:https://thesedonaconference.org/download-publication?fid=2978
+ESI Guidelines]:https://www.cand.uscourts.gov/eDiscovery
+Guidelines
+[Advisory Committee]:https://www.uscourts.gov/rules-policies/archives/committee-reports/advisory-committee-rules-civil-procedure-may-2014
+[ESI Checklist]:https://www.cand.uscourts.gov/eDiscoveryGuidelines
+[keyword limitations]:http://www.neworleansbar.org/news/committees/relying-on-keyword-search-for-e-discovery-it-may-harm-your-case

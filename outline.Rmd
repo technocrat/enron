@@ -29,13 +29,7 @@ data(stop_words)
 
 ```
 
-### Information sought
 
-Prior to the investigation that resulted in the an initial staff report, FERC received a report from the California agency responsible for operating the electric energy exchange that FERC was concerned that the market had been manipulating.^[Frank A. Wolak, Chairman, Market Surveillance Committee of California Independent System Operator, *Report on Redesign of California Real-Time Energy and Ancillary Services Markets* dated October 18, 1999], which will be referred to as the [Wolak report].
-
-The [Wolak report] was prepared before FERC began its investigation, did not rely on the Enron email corpus^[The report does not even name Enron.] and provides a lengthy analysis of the indicia of the exercise of market power in the California electricity wholesale market. A topical and keyword digest was prepared, as discussed below, to identify subjects of interest in the corpus.
-
-# digest Wolak here
 
 ## Identification of high-value witnesses
 
