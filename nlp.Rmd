@@ -8,12 +8,12 @@ knitr::opts_chunk$set(echo = TRUE)
 library(dplyr)
 library(ggplot2)
 library(magrittr)
+library(pander)
 library(scales)
 library(stringr)
 library(tibble)
 library(tidyr)
 library(tidytext)
-
 
 '%out%' <- Negate ('%in%')
 load("n_enron.Rda")
@@ -85,6 +85,37 @@ n2_dist_bag <- n2_words %>%
 n3_dist_bag <- n3_words %>%
   mutate(Cluster3 = word %in% n3_vocab$word)  %>%
   filter(Cluster3 == TRUE)
+
+#tf-idf c_ = cluster words
+c_words <- n_enron                                            %>%
+              unnest_tokens(word,payload)                     %>%
+              anti_join(stop_words)                           %>%
+              filter(word != str_match_all(word,"\\d+"))      %>%
+              filter(word != str_match_all(word,"\\d+.\\d+")) %>%
+              count(f_cluster, word, sort = TRUE)             %>%
+              ungroup()
+
+total_words <- c_words                              %>%
+               group_by(f_cluster)                  %>%
+               summarize(total = sum(n))
+
+c_words <- left_join(c_words, total_words)
+
+freq_by_rank <- c_words               %>%
+ group_by(f_cluster)                  %>%
+ mutate(rank = row_number(),
+        `term frequency` = n/total)
+
+rank_subset <- freq_by_rank %>%
+ filter(rank < 500,
+        rank > 10)
+
+c_words <- c_words  %>%
+  bind_tf_idf(word, f_cluster, n)
+
+fit <- lm(log10(`term frequency`) ~ log10(rank), data = rank_subset)
+
+
 ```
 
 ## Natural language processing
@@ -272,10 +303,57 @@ n_freq <- n_freq %>%
   mutate(Cluster3 = Cluster3*frequency)
 
 
-cor.test(n_freq$Cluster1,n_freq$Cluster2)
-cor.test(n_freq$Cluster1,n_freq$Cluster3)
-cor.test(n_freq$Cluster2,n_freq$Cluster3)
+pander(cor.test(n_freq$Cluster1,n_freq$Cluster2))
+pander(cor.test(n_freq$Cluster1,n_freq$Cluster3))
+pander(cor.test(n_freq$Cluster2,n_freq$Cluster3))
 
 ```
 
-With respect to word frequencies, the three clusters are very weakly negatively correlated. The three clusters can be distinguished not only by volume, percentage of cluster-specific vocabulary, but also by the lack of intra-cluster correlations. Because the clusters derive from the machine learning latent network detection algorithm, there is now credible evidence that they can be further analyzed to identify collections of specific messages containing keywords of interest, to which we next turn.
+With respect to word frequencies, the three clusters have very week negative coefficients, but the corresponding p-values require rejection of the null hypothosis that they are uncorrelated. The three clusters can be distinguished not only by volume, percentage of cluster-specific vocabulary, but also by the lack of intra-cluster correlations. 
+
+However, term frequency alone overweights frequently occurring words and should be supplemented by considering rarely occurring words in combination.^[The analysis of `td-idf` here follows the examples given in chapter 3 of [Tidytext].] A plot of how often a term occurs within each cluster by its rank order shows the straight line log-log plot characteristic of a power-law distribution.
+
+```{r}
+freq_by_rank %>%
+ ggplot(aes(rank, `term frequency`, color = f_cluster))   +
+ geom_line(size = 1.1, alpha = 0.8, show.legend = FALSE)  +
+ scale_x_log10()                                          +
+ scale_y_log10()
+```
+
+Regressing the log of term frequency on the log of term rank illustrates how closely the distribution follows that model.
+
+```{r}
+pander(summary(fit))
+```
+
+The `td-idf` (term frequency/inverse term frequency) word table provides a more nuanced and useful depiction of differences in word usage among the graph clusters.
+
+```{r}
+c_words                           %>%
+  select(-total)                  %>%
+  arrange(desc(tf_idf))           %>%
+  mutate(word =
+    factor(word, levels =
+             rev(unique(word))))  %>%
+  group_by(f_cluster)             %>%
+  top_n(16)                       %>%
+  ungroup                         %>%
+  ggplot(aes(word, tf_idf, fill = f_cluster))       +
+  geom_col(show.legend = FALSE)                     +
+  labs(x = NULL, y = "tf-idf")                      +
+  facet_wrap(~f_cluster, ncol = 2, scales = "free") +
+  coord_flip()
+```
+
+In these charts, there is more specificity. Names are more prominent, both natural and business, in clusters 1 and 3; while cluster 2 also contains names, it has more abstract terms than the other clusters. "Media, puhca^[Public Utilities Holding Company Act]. employment, and speech" are examples. The abstract terms "buys, sells, trades" in cluster 1 are suggestive of an operation that engages in frequent transactions. Cluster 3 has "transwestern, questar and nng", which were all natural gas pipeline distributors.
+
+Although the word associations differences among are suggestive of distinct aspects of Enron's business, machine learning has the potential to further organize the email texts to find other connections and distinctions through a process of latent Dirichet allocation, or `LDA`^[Not to be confused with linear discriminant analysis.]
+
+### Machine learning
+
+
+
+
+
+[Tidytext]:https://www.tidytextmining.com/
