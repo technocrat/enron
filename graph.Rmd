@@ -1,6 +1,8 @@
 ---
-title: "graph"
-output: html_document
+title: "Graph Analysis"
+output:
+  html_document:
+    df_print: paged
 ---
 
 ```{r setup, include=FALSE}
@@ -48,9 +50,12 @@ The graph shows a dense cluster of users with a high concentration of potentiall
 
 ```{r net_raw}
 net_raw
+raw_edges <-  length(net_raw$mel)
+raw_vertices <- net_raw$gal$n
+
 ```
 
-The graph consists of `r length(net_raw$mel)` edges, each representing one or more emails, an average of `r length(net_raw$mel)/net_raw$gal$n` emails per user.
+The graph consists of `r` raw_edges` edges, each representing one or more emails, an average of `r raw_edges/raw_vertices` emails per user.
 
 #### Density
 
@@ -58,7 +63,7 @@ The graph consists of `r length(net_raw$mel)` edges, each representing one or mo
 raw_density <- gden(net_raw)
 ```
 
-The graph has a density of `r gden(net_raw)`, which is very low.
+The graph has a density of `r raw_density`, which is very low.
 
 #### Components
 

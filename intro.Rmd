@@ -1,6 +1,6 @@
 ---
-title: "intro.Rmd"
-output: html_document
+title: "Introduction"
+output: pdf_document
 ---
 
 ```{r setup, include=FALSE}
@@ -47,8 +47,7 @@ high bandwidth communication applications.
 As of December 31, 2000, Enron employed approximately
 20,600 persons.
 
-	\end{Verbatim}
-
+\end{Verbatim}
 
 For the year ended December 31, 2000, it had operating revenues of $100,789 million, according to the same report.
 
