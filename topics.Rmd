@@ -10,88 +10,45 @@ knitr::opts_chunk$set(echo = TRUE)
 library(broom)
 library(GGally)
 library(here)
+library(pander)
+library(pdftools)
 library(slam)
 library(tidyr)
 library(tidytext)
 library(tidyverse)
 library(tm)
 library(topicmodels)
-uri <- here("sources/wolak.pdf")
-engine <- "pdftools"
-reader <- readPDF(engine)
-wolak <- reader(elem = list(uri = uri), language = "en", id = "id1")
-#save(wolak, file = "wolak.Rda")
-wolak <- VectorSource(wolak)
+load("g_enron.Rda")
+
+# Mon Mar 11 21:55:19 2019 ------------------------------
+# uri <- here("sources/wolak.pdf")
+# engine <- "pdftools"
+# rseader <- readPDF(engine)
+# wolak_text <- reader(elem = list(uri = uri), language = "en", id = "id1")$content # discard metadata
+# See supplemental script wolak_scrub.R for operations
+# to clean wolak_text for topic analysis as a single document
+# rather than as a collection of documents (one per page).
+# saved as wolak_clean.Rda
+
+load("wolak_clean.Rda")
+
+wolak <- VectorSource(wolak_clean)
 w_corpus <- VCorpus(wolak)
-w_corpus <- tm_map(w_corpus, stripWhitespace)
 w_corpus <- tm_map(w_corpus, removeWords, stopwords("english"))
 w_corpus <- tm_map(w_corpus, removeNumbers)
-w_corpus <- tm_map(w_corpus, removePunctuation, preserve_intra_word_contractions = TRUE, preserve_intra_word_dashes = TRUE)
-w_corpus <- tm_map(w_corpus, stemDocument)
 #save(w_corpus, file = "w_corpus.Rda")
-
 w_dtm <- DocumentTermMatrix(w_corpus)
 removeSparseTerms(w_dtm, 0.2)
-# #save(w_dtm, file = "w_dtm.Rda")
-# #findFreqTerms(w_dtm, 5)
-# #findAssocs(w_dtm, "day-ahead", 0.8)
-# w_ctm <- CTM(w_dtm, k = 5) # how to unpack
-# w_lda <- LDA(w_dtm, control = list(alpha = 0.1), k = 5)
-# w_lda_inf <- posterior(w_lda, w_dtm)
-# 
-# term_tfidf <-
-#   + tapply(w_dtm$v/row_sums(w_dtm)[w_dtm$i], w_dtm$j, mean) *
-#   + log2(nDocs(w_dtm)/col_sums(w_dtm > 0))
-# 
-# w_dtm <- w_dtm[,term_tfidf >= 0.1]
-# w_dtm <- w_dtm[row_sums(w_dtm) > 0,]
-# summary(col_sums(w_dtm))
-
-k <- 3
-SEED <- 2010
-w_TM <- list(VEM = LDA(w_dtm, k = k, control = list(seed = SEED)),VEM_fixed = LDA(w_dtm, k = k,control = list(estimate.alpha = FALSE, seed = SEED)), Gibbs = LDA(w_dtm, k = k, method = "Gibbs", control = list(seed = SEED, burnin = 1000, thin = 100, iter = 1000)), CTM = CTM(w_dtm, k = k, control = list(seed = SEED, var = list(tol = 10^-4), em = list(tol = 10^-3))))
-
-sapply(w_TM[1:2], slot, "alpha")
-
-w_Topic <- topics(w_TM[["VEM"]], 1)
-w_terms <- terms(w_TM[["VEM"]], 5)
-w_terms[,1:5]
-
-w_terms <- tidy(w_dtm)
-w_terms <- w_terms %>% mutate(term = str_replace(term, "^[:punct:]", ""))
-
-# Sat Feb 23 17:05:05 2019 ------------------------------
-# can be no blank rows in dtm, but nrow must be kept in sync
-# Must also re run networks -----------------------------
-#g_enron <- g_enron %>% filter(nchar(payload) <10) # filters 692 blanks
-g_bag <- g_enron %>% select(payload)
-g <- VectorSource(g_bag)
-g_corpus <- tm_map(g_corpus, stripWhitespace)
-g_corpus <- tm_map(g_corpus, removeWords, stopwords("english"))
-g_corpus <- tm_map(g_corpus, removeNumbers)
-g_corpus <- tm_map(g_corpus, removePunctuation, preserve_intra_word_contractions = TRUE, preserve_intra_word_dashes = TRUE)
-g_corpus <- tm_map(g_corpus, stemDocument)
-#save(g_corpus, file = "g_corpus.Rda")
-g_dtm <- DocumentTermMatrix(g_corpus)
-# Sat Feb 23 15:12:14 2019 ------------------------------
-# Remove all zero rows
-rowTotals <- apply(g_dtm , 1, sum)
-g_dtm <- g_dtm[rowTotals> 0, ]
-
-removeSparseTerms(g_dtm, 0.2)
-save(g_dtm, file = "g_dtm.Rda")
-
-
-
-k <- 3
-SEED <- 2010
-g_TM <- list(VEM = LDA(g_dtm, k = k, control = list(seed = SEED)),VEM_fixed = LDA(g_dtm, k = k,control = list(estimate.alpha = FALSE, seed = SEED)), Gibbs = LDA(g_dtm, k = k, method = "Gibbs", control = list(seed = SEED, burnin = 1000, thin = 100, iter = 1000)), CTM = CTM(g_dtm, k = k, control = list(seed = SEED, var = list(tol = 10^-4), em = list(tol = 10^-3))))
-
-sapply(g_TM[1:2], slot, "alpha")
-
-
-g_terms<- terms(g_TM[["VEM"]], 250)
-
+#save(w_dtm, file = "w_dtm.Rda")
+findFreqTerms(w_dtm, 5)
+# ff ch 6 of tt
+w_lda <- LDA(w_dtm, control = list(seed = 2203), k = 6)
+w_topics <- tidy(w_lda, matrix = "beta")
+w_top_terms <- w_topics %>%
+  group_by(topic) 	  	%>%
+  top_n(15, beta) 		  %>%
+  ungroup() 			      %>%
+  arrange(topic, -beta)
 ```
 
 ### Email discovery in litigation
@@ -111,8 +68,21 @@ Prior to the investigation that resulted in the an initial staff report, FERC re
 
 The [Wolak report] was prepared before FERC began its investigation, did not rely on the Enron email corpus^[The report does not even name Enron.] and provides a lengthy analysis of the indicia of the exercise of market power in the California electricity wholesale market. A topical and keyword digest was prepared, as discussed below, to identify subjects of interest in the corpus.
 
-#### Wolak keywords
+#### Wolak keywords and topics
 
+A latent Dirichlet allocation model specifying classification into six topics was prepared for the [Wolak Report]. As descibed in the [classic paper] by David Blei, Andrew Ng and Michael Jordan, *Latent Dirichlet Allocation* (*J. Machine Learning Res.* 3 (2003). 993-1022), this machine learning technique is a generative probabalistic model. Each discrete object in a collectikon (such as words in a document) is "modeled as a finixed mixture over an underlying sete of topics" (*id.*). Topics on the other hand are "modeled as an infinite mixture over an underlying set of topic probabilities." (*id.*) A list of some of the keywords in each modeled topic are
+
+```{r}
+pander(w_top_terms)
+w_top_terms 							%>%
+  mutate(term = reorder(term, beta)) 	%>%
+  ggplot(aes(term, beta, fill = factor(topic))) +
+  geom_col(show.legend = FALSE) 				+
+  facet_wrap(~ topic, scales = "free") 			+
+  coord_flip()
+```
+
+What is immediately striking is that the same word, such as *market* may belong to every topic. Other words, *PG&E, hydro,* and *divestiture* are found only in one topic. A combination of keywords and topics will be derived from the Enron dataset and commonalities will be sought.
 
 
 
@@ -121,8 +91,14 @@ The [Wolak report] was prepared before FERC began its investigation, did not rel
 [McWhorter]:https://www.ted.com/talks/john_mcwhorter_txtng_is_killing_language_jk?language=en
 
 [Sedona Conference]:https://thesedonaconference.org/download-publication?fid=2978
-ESI Guidelines]:https://www.cand.uscourts.gov/eDiscovery
+
+[ESI Guidelines]:https://www.cand.uscourts.gov/eDiscovery
 Guidelines
+
 [Advisory Committee]:https://www.uscourts.gov/rules-policies/archives/committee-reports/advisory-committee-rules-civil-procedure-may-2014
+
 [ESI Checklist]:https://www.cand.uscourts.gov/eDiscoveryGuidelines
+
 [keyword limitations]:http://www.neworleansbar.org/news/committees/relying-on-keyword-search-for-e-discovery-it-may-harm-your-case
+
+[classic paper]:http://www.jmlr.org/papers/volume3/blei03a/blei03a.pdf

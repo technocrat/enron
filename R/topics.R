@@ -10,129 +10,278 @@ library(tidyverse)
 library(tm)
 library(topicmodels)
 load("g_enron.Rda")
-uri <- here("sources/wolak.pdf")
-engine <- "pdftools"
-rseader <- readPDF(engine)
-wolak_text <- reader(elem = list(uri = uri), language = "en", id = "id1")$content # discard metadata
 
 # Mon Mar 11 21:55:19 2019 ------------------------------
-#wolak needs a lot of stringer work``
-#save(wolak_text, file = "wolak_text.Rda")
+# uri <- here("sources/wolak.pdf")
+# engine <- "pdftools"
+# rseader <- readPDF(engine)
+# wolak_text <- reader(elem = list(uri = uri), language = "en", id = "id1")$content # discard metadata
+# See supplemental script wolak_scrub.R for operations
+# to clean wolak_text for topic analysis as a single document
+# rather than as a collection of documents (one per page).
+# saved as wolak_clean.Rda
 
+load("wolak_clean.Rda")
 
-
-
-
-wolak <- VectorSource(wolak)
+wolak <- VectorSource(wolak_clean)
 w_corpus <- VCorpus(wolak)
-w_stops <- c("intel", "microsoft", "null", "rebuttal", "word") # recurring pdf metadata
-e_stops <- stopwords("en")
-aug_stops <- cbind(e_stops, w_stops)
-w_corpus <- tm_map(w_corpus, stripWhitespace)
-w_corpus <- tm_map(w_corpus, removeWords, aug_stops)
-#w_corpus <- tm_map(w_corpus, removeWords, stopwords("english"))
+w_corpus <- tm_map(w_corpus, removeWords, stopwords("english"))
 w_corpus <- tm_map(w_corpus, removeNumbers)
-w_corpus <- tm_map(w_corpus, removePunctuation, preserve_intra_word_contractions = TRUE, preserve_intra_word_dashes = TRUE)
-#w_corpus <- tm_map(w_corpus, stemDocument)
 #save(w_corpus, file = "w_corpus.Rda")
 w_dtm <- DocumentTermMatrix(w_corpus)
 removeSparseTerms(w_dtm, 0.2)
 #save(w_dtm, file = "w_dtm.Rda")
 findFreqTerms(w_dtm, 5)
-findAssocs(w_dtm, "day-ahead", 0.8)
-w_ctm <- CTM(w_dtm, k = 5) # how to unpack
-w_lda <- LDA(w_dtm, control = list(alpha = 0.1), k = 5)
-w_lda_inf <- posterior(w_lda, w_dtm)
+# ff ch 6 of tt
+w_lda <- LDA(w_dtm, control = list(seed = 2203), k = 6)
+w_topics <- tidy(w_lda, matrix = "beta")
 
-term_tfidf <-
-  + tapply(w_dtm$v/row_sums(w_dtm)[w_dtm$i], w_dtm$j, mean) *
-  + log2(nDocs(w_dtm)/col_sums(w_dtm > 0))
+w_top_terms <- w_topics %>%
+  group_by(topic) 		%>%
+  top_n(25, beta) 		%>%
+  ungroup() 			%>%
+  arrange(topic, -beta)
 
-w_dtm <- w_dtm[,term_tfidf >= 0.1]
-w_dtm <- w_dtm[row_sums(w_dtm) > 0,]
-summary(col_sums(w_dtm))
+w_top_terms 							%>%
+  mutate(term = reorder(term, beta)) 	%>%
+  ggplot(aes(term, beta, fill = factor(topic))) +
+  geom_col(show.legend = FALSE) 				+
+  facet_wrap(~ topic, scales = "free") 			+
+  coord_flip()
 
-k <- 3
-SEED <- 2010
-w_TM <- list(VEM = LDA(w_dtm, k = k, control = list(seed = SEED)),VEM_fixed = LDA(w_dtm, k = k,control = list(estimate.alpha = FALSE, seed = SEED)), Gibbs = LDA(w_dtm, k = k, method = "Gibbs", control = list(seed = SEED, burnin = 1000, thin = 100, iter = 1000)), CTM = CTM(w_dtm, k = k, control = list(seed = SEED, var = list(tol = 10^-4), em = list(tol = 10^-3))))
+#===============================================================================
+beta_spread2_1 <- w_topics %>%
+  mutate(topic = paste0("topic", topic)) %>%
+  spread(topic, beta) %>%
+  filter(topic1 > .001 | topic2 > .001) %>%
+  mutate(log_ratio = log2(topic2 / topic1))
 
-sapply(w_TM[1], slot, "alpha")
+beta_spread2_1
 
-w_Topic <- topics(w_TM[["VEM"]], 1)
-w_terms <- terms(w_TM[["VEM"]], 250)
-#Terms[,1:5]
+beta_spread2_1 %>%
+  group_by(direction = log_ratio > 0) %>%
+  top_n(10, abs(log_ratio)) %>%
+  ungroup() %>%
+  mutate(term = reorder(term, log_ratio)) %>%
+  ggplot(aes(term, log_ratio)) +
+  geom_col() +
+  labs(y = "Log2 ratio of beta in topic 2 / topic 1") +
+  coord_flip()
 
-w_terms <- tidy(w_dtm)
-w_terms <- w_terms %>% mutate(term = str_replace(term, "^[:punct:]", ""))
+#===============================================================================
+beta_spread2_3 <- w_topics %>%
+  mutate(topic = paste0("topic", topic)) %>%
+  spread(topic, beta) %>%
+  filter(topic1 > .001 | topic3 > .001) %>%
+  mutate(log_ratio = log2(topic3 / topic1))
 
-# Sat Feb 23 17:05:05 2019 ------------------------------
-# can be no blank rows in dtm, but nrow must be kept in sync
-# Must also re run networks -----------------------------
-#g_enron <- g_enron %>% filter(nchar(payload) <10) # filters 692 blanks
-g_bag <- g_enron %>% select(payload)
-g <- VectorSource(g_bag)
-g_corpus <- tm_map(g_corpus, stripWhitespace)
-g_corpus <- tm_map(g_corpus, removeWords, stopwords("english"))
-g_corpus <- tm_map(g_corpus, removeNumbers)
-g_corpus <- tm_map(g_corpus, removePunctuation, preserve_intra_word_contractions = TRUE, preserve_intra_word_dashes = TRUE)
-g_corpus <- tm_map(g_corpus, stemDocument)
-#save(g_corpus, file = "g_corpus.Rda")
-g_dtm <- DocumentTermMatrix(g_corpus)
-# Sat Feb 23 15:12:14 2019 ------------------------------
-# Remove all zero rows
-rowTotals <- apply(g_dtm , 1, sum)
-g_dtm <- g_dtm[rowTotals> 0, ]
+beta_spread2_3
 
-removeSparseTerms(g_dtm, 0.2)
-#save(g_dtm, file = "g_dtm.Rda")
+beta_spread2_3 %>%
+  group_by(direction = log_ratio > 0) %>%
+  top_n(10, abs(log_ratio)) %>%
+  ungroup() %>%
+  mutate(term = reorder(term, log_ratio)) %>%
+  ggplot(aes(term, log_ratio)) +
+  geom_col() +
+  labs(y = "Log2 ratio of beta in topic 2 / topic 3") +
+  coord_flip()
+
+#===============================================================================
+beta_spread2_4 <- w_topics %>%
+  mutate(topic = paste0("topic", topic)) %>%
+  spread(topic, beta) %>%
+  filter(topic1 > .001 | topic4 > .001) %>%
+  mutate(log_ratio = log2(topic4 / topic1))
+
+beta_spread2_4
+
+beta_spread2_4 %>%
+  group_by(direction = log_ratio > 0) %>%
+  top_n(10, abs(log_ratio)) %>%
+  ungroup() %>%
+  mutate(term = reorder(term, log_ratio)) %>%
+  ggplot(aes(term, log_ratio)) +
+  geom_col() +
+  labs(y = "Log2 ratio of beta in topic 2 / topic 4") +
+  coord_flip()
+
+#===============================================================================
+beta_spread2_5 <- w_topics %>%
+  mutate(topic = paste0("topic", topic)) %>%
+  spread(topic, beta) %>%
+  filter(topic1 > .001 | topic5 > .001) %>%
+  mutate(log_ratio = log2(topic5 / topic1))
+
+beta_spread2_5
+
+beta_spread2_5 %>%
+  group_by(direction = log_ratio > 0) %>%
+  top_n(10, abs(log_ratio)) %>%
+  ungroup() %>%
+  mutate(term = reorder(term, log_ratio)) %>%
+  ggplot(aes(term, log_ratio)) +
+  geom_col() +
+  labs(y = "Log2 ratio of beta in topic 2 / topic 5") +
+  coord_flip()
+#===============================================================================
+beta_spread2_6 <- w_topics %>%
+  mutate(topic = paste0("topic", topic)) %>%
+  spread(topic, beta) %>%
+  filter(topic1 > .001 | topic6 > .001) %>%
+  mutate(log_ratio = log2(topic6 / topic1))
+
+beta_spread2_6
+
+beta_spread2_6 %>%
+  group_by(direction = log_ratio > 0) %>%
+  top_n(10, abs(log_ratio)) %>%
+  ungroup() %>%
+  mutate(term = reorder(term, log_ratio)) %>%
+  ggplot(aes(term, log_ratio)) +
+  geom_col() +
+  labs(y = "Log2 ratio of beta in topic 2 / topic 6") +
+  coord_flip()
+
+#===============================================================================
+beta_spread3_1 <- w_topics %>%
+  mutate(topic = paste0("topic", topic)) %>%
+  spread(topic, beta) %>%
+  filter(topic1 > .001 | topic3 > .001) %>%
+  mutate(log_ratio = log2(topic3 / topic1))
+
+beta_spread3_1
+
+beta_spread3_1 %>%
+  group_by(direction = log_ratio > 0) %>%
+  top_n(10, abs(log_ratio)) %>%
+  ungroup() %>%
+  mutate(term = reorder(term, log_ratio)) %>%
+  ggplot(aes(term, log_ratio)) +
+  geom_col() +
+  labs(y = "Log2 ratio of beta in topic 3 / topic 1") +
+  coord_flip()
+
+#===============================================================================
+beta_spread4_1 <- w_topics %>%
+  mutate(topic = paste0("topic", topic)) %>%
+  spread(topic, beta) %>%
+  filter(topic1 > .001 | topic4 > .001) %>%
+  mutate(log_ratio = log2(topic4 / topic1))
+
+beta_spread4_1
+
+beta_spread4_1 %>%
+  group_by(direction = log_ratio > 0) %>%
+  top_n(10, abs(log_ratio)) %>%
+  ungroup() %>%
+  mutate(term = reorder(term, log_ratio)) %>%
+  ggplot(aes(term, log_ratio)) +
+  geom_col() +
+  labs(y = "Log2 ratio of beta in topic 4 / topic 1") +
+  coord_flip()
+
+
+#===============================================================================
+beta_spread4_1 <- w_topics %>%
+  mutate(topic = paste0("topic", topic)) %>%
+  spread(topic, beta) %>%
+  filter(topic1 > .001 | topic4 > .001) %>%
+  mutate(log_ratio = log2(topic4 / topic1))
+
+beta_spread4_1
+
+beta_spread4_1 %>%
+  group_by(direction = log_ratio > 0) %>%
+  top_n(10, abs(log_ratio)) %>%
+  ungroup() %>%
+  mutate(term = reorder(term, log_ratio)) %>%
+  ggplot(aes(term, log_ratio)) +
+  geom_col() +
+  labs(y = "Log2 ratio of beta in topic 4 / topic 1") +
+  coord_flip()
+
+
+#===============================================================================
+beta_spread4_3 <- w_topics %>%
+  mutate(topic = paste0("topic", topic)) %>%
+  spread(topic, beta) %>%
+  filter(topic3 > .001 | topic4 > .001) %>%
+  mutate(log_ratio = log2(topic4 / topic3))
+
+beta_spread4_3
+
+beta_spread4_3 %>%
+  group_by(direction = log_ratio > 0) %>%
+  top_n(10, abs(log_ratio)) %>%
+  ungroup() %>%
+  mutate(term = reorder(term, log_ratio)) %>%
+  ggplot(aes(term, log_ratio)) +
+  geom_col() +
+  labs(y = "Log2 ratio of beta in topic 4 / topic 3") +
+  coord_flip()
+
+
+#===============================================================================
+beta_spread4_5 <- w_topics %>%
+  mutate(topic = paste0("topic", topic)) %>%
+  spread(topic, beta) %>%
+  filter(topic5 > .001 | topic4 > .001) %>%
+  mutate(log_ratio = log2(topic4 / topic5))
+
+beta_spread4_5
+
+beta_spread4_5 %>%
+  group_by(direction = log_ratio > 0) %>%
+  top_n(10, abs(log_ratio)) %>%
+  ungroup() %>%
+  mutate(term = reorder(term, log_ratio)) %>%
+  ggplot(aes(term, log_ratio)) +
+  geom_col() +
+  labs(y = "Log2 ratio of beta in topic 4 / topic 5") +
+  coord_flip()
+
+
+#===============================================================================
+beta_spread4_6 <- w_topics %>%
+  mutate(topic = paste0("topic", topic)) %>%
+  spread(topic, beta) %>%
+  filter(topic6 > .001 | topic4 > .001) %>%
+  mutate(log_ratio = log2(topic6 / topic4))
+
+beta_spread4_6
+
+beta_spread4_6 %>%
+  group_by(direction = log_ratio > 0) %>%
+  top_n(10, abs(log_ratio)) %>%
+  ungroup() %>%
+  mutate(term = reorder(term, log_ratio)) %>%
+  ggplot(aes(term, log_ratio)) +
+  geom_col() +
+  labs(y = "Log2 ratio of beta in topic 6 / topic 4") +
+  coord_flip()
+
+
+#===============================================================================
+beta_spread5_6 <- w_topics %>%
+  mutate(topic = paste0("topic", topic)) %>%
+  spread(topic, beta) %>%
+  filter(topic6 > .001 | topic6 > .001) %>%
+  mutate(log_ratio = log2(topic6 / topic5))
+
+beta_spread5_6
+
+beta_spread5_6 %>%
+  group_by(direction = log_ratio > 0) %>%
+  top_n(10, abs(log_ratio)) %>%
+  ungroup() %>%
+  mutate(term = reorder(term, log_ratio)) %>%
+  ggplot(aes(term, log_ratio)) +
+  geom_col() +
+  labs(y = "Log2 ratio of beta in topic 6 / topic 4") +
+  coord_flip()
 
 
 
-k <- 3
-SEED <- 2010
-g_TM <- list(VEM = LDA(g_dtm, k = k, control = list(seed = SEED)),VEM_fixed = LDA(g_dtm, k = k,control = list(estimate.alpha = FALSE, seed = SEED)), Gibbs = LDA(g_dtm, k = k, method = "Gibbs", control = list(seed = SEED, burnin = 1000, thin = 100, iter = 1000)), CTM = CTM(g_dtm, k = k, control = list(seed = SEED, var = list(tol = 10^-4), em = list(tol = 10^-3))))
-
-sapply(g_TM[1:2], slot, "alpha")
 
 
-g_terms<- terms(g_TM[["VEM"]], 250)
-
-
-w_Topic <- topics(w_TM[["VEM"]], 1)
-w_terms <- terms(w_TM[["VEM"]], 250)
-Terms[,1:5]
-
-w_terms <- tidy(w_dtm)
-w_terms <- w_terms %>% mutate(term = str_replace(term, "^[:punct:]", ""))
-
-# Sat Feb 23 17:05:05 2019 ------------------------------
-# can be no blank rows in dtm, but nrow must be kept in sync
-# Must also re run networks -----------------------------
-#g_enron <- g_enron %>% filter(nchar(payload) <10) # filters 692 blanks
-g_bag <- g_enron %>% select(payload)
-g <- VectorSource(g_bag)
-g_corpus <- tm_map(g_corpus, stripWhitespace)
-g_corpus <- tm_map(g_corpus, removeWords, stopwords("english"))
-g_corpus <- tm_map(g_corpus, removeNumbers)
-g_corpus <- tm_map(g_corpus, removePunctuation, preserve_intra_word_contractions = TRUE, preserve_intra_word_dashes = TRUE)
-g_corpus <- tm_map(g_corpus, stemDocument)
-#save(g_corpus, file = "g_corpus.Rda")
-g_dtm <- DocumentTermMatrix(g_corpus)
-# Sat Feb 23 15:12:14 2019 ------------------------------
-# Remove all zero rows
-rowTotals <- apply(g_dtm , 1, sum)
-g_dtm <- g_dtm[rowTotals> 0, ]
-
-removeSparseTerms(g_dtm, 0.2)
-#save(g_dtm, file = "g_dtm.Rda")
-
-
-
-k <- 3
-SEED <- 2010
-g_TM <- list(VEM = LDA(g_dtm, k = k, control = list(seed = SEED)),VEM_fixed = LDA(g_dtm, k = k,control = list(estimate.alpha = FALSE, seed = SEED)), Gibbs = LDA(g_dtm, k = k, method = "Gibbs", control = list(seed = SEED, burnin = 1000, thin = 100, iter = 1000)), CTM = CTM(g_dtm, k = k, control = list(seed = SEED, var = list(tol = 10^-4), em = list(tol = 10^-3))))
-
-sapply(g_TM[1:2], slot, "alpha")
-
-
-g_terms<- terms(g_TM[["VEM"]], 250)

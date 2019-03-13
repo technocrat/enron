@@ -160,3 +160,22 @@ To achieve a computationally practicable dataset for initial social network anal
 [theoretical]:https://www.jstatsoft.org/article/view/v024i05
 
 [accessible]:https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2831261/
+
+[The Federal Rules of Civil Procedure]:https://www.uscourts.gov/sites/default/files/cv_rules_eff._dec._1_2018_0.pdf
+
+[McWhorter]:https://www.ted.com/talks/john_mcwhorter_txtng_is_killing_language_jk?language=en
+
+[Sedona Conference]:https://thesedonaconference.org/download-publication?fid=2978
+ESI Guidelines]:https://www.cand.uscourts.gov/eDiscovery
+Guidelines
+
+[Advisory Committee]:https://www.uscourts.gov/rules-policies/archives/committee-reports/advisory-committee-rules-civil-procedure-may-2014
+
+[ESI Checklist]:https://www.cand.uscourts.gov/eDiscoveryGuidelines
+[keyword limitations]:http://www.neworleansbar.org/news/committees/relying-on-keyword-search-for-e-discovery-it-may-harm-your-case
+
+[classic paper]:http://www.jmlr.org/papers/volume3/blei03a/blei03a.pdf
+
+[ESI Guidelines]:https://www.cand.uscourts.gov/eDiscovery
+Guidelines
+
