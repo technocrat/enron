@@ -3,7 +3,6 @@
 library(tidyverse)
 library(stringr)
 load("wolak_text.Rda")
-wolak_text <- wolak_text
 
 
 # patterns identified by visual inspection of pdf conversion

@@ -13,49 +13,65 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## Goal
 
-The goal of this paper is to illustrate a combination of machine learning, natural language processing and graph analysis techniques applied to corporate email to identify potential witnesses in litigation.
+The goal of this paper is to illustrate a combination of latent networks and latent topic modeling machine learning, applied to corporate email to identify potential witnesses in litigation.
 
 # Background
 
 > In times of political turmoil, events can move from impossible to inevitable without even passing through improbable. [Anatole Kalesky]
 
-[Enron Corp.] and its affiliates were engaged in energy-related businesses, as described in its [Annual Report on Form 10-K for the year ended December 31, 2000]
+[Enron Corp.] and its affiliates were engaged in energy-related businesses, as described in its [Annual Report on Form 10-K for the year ended December 31, 2000].
 
-\begin{Verbatim}[frame=single]
 
-*    the transportation of natural gas through pipelines to
-markets throughout the United States;
-
-*    the generation, transmission and distribution of
-electricity to markets in the northwestern United States;
-
-*    the marketing of natural gas, electricity and other
-commodities and related risk management and finance services
-worldwide;
-
-*    the development, construction and operation of power
-plants, pipelines and other energy related assets worldwide;
-
-*    the delivery and management of energy commodities and
-capabilities to end-use retail customers in the industrial
-and commercial business sectors; and
-
-*    the development of an intelligent network platform to
-provide bandwidth management services and the delivery of
-high bandwidth communication applications.
+    *    the transportation of natural gas through pipelines to
+    markets throughout the United States;
+    
+    *    the generation, transmission and distribution of
+    electricity to markets in the northwestern United States;
+    
+    *    the marketing of natural gas, electricity and other
+    commodities and related risk management and finance services
+    worldwide;
+    
+    *    the development, construction and operation of power
+    plants, pipelines and other energy related assets worldwide;
+    
+    *    the delivery and management of energy commodities and
+    capabilities to end-use retail customers in the industrial
+    and commercial business sectors; and
+    
+    *    the development of an intelligent network platform to
+    provide bandwidth management services and the delivery of
+    high bandwidth communication applications.
 
 As of December 31, 2000, Enron employed approximately
 20,600 persons.
 
-\end{Verbatim}
+For the year ended December 31, 2000, it had operating revenues of $100,789 million, according to the same report, in which it described one of its businesses as
 
-For the year ended December 31, 2000, it had operating revenues of $100,789 million, according to the same report.
+> Enron purchases, markets and delivers natural gas,
+electricity and other commodities in North America.
+Customers include independent oil and gas producers, energy-
+intensive industrials, public and investor-owned utility
+power companies, small independent power producers and local
+distribution companies. Enron also offers a broad range of
+price, risk management and financing services including
+forward contracts, swap agreements and other contractual
+commitments. Enron's strategy is to enhance the scale,
+scope, flexibility and speed of its North American energy
+businesses through developing and acquiring selective
+assets, securing contractual access to third party assets,
+forming alliances with customers and utilizing technology
+such as EnronOnline.  With increased liquidity in the
+marketplace and the success of EnronOnline, Enron believes
+that it no longer needs to own the same level of physical
+assets, instead utilizing contracting and market-making
+activities.
 
 On December 2, 2001, Enron filed for [bankruptcy protection].
 
 In less than a year, Enron underwent a complete reversal of fortune as its business strategies ran afoul of applicable regulations, among which were those of the Federal Energy Regulatory Commission (**FERC**).
 
-FERC [became aware] of irregularities in the California wholesale electricity market prices. An orientation to the issues is provided by [testimony] before FERC, which  provides a concise summary.^[The short version, which I can relate as a former California regulatory official from personal knowledge, is that public electric utilities were losing a large share of industrial customers to self-generation. Many businesses found it cheaper to generate on-site than to pay tariff rates. Foreseeably, residential and business customers without the option to self-generate would come to  bear the entire cost of unamortized utility fixed assets^[Termed *stranded costs*], and rates for retail, commercial and small industrial customers would increase. The adopted solution was to require the utilities to sell their generation plants and buy power on a new public market on a *day-ahead*, tomorrow's estimated demand, and an *hour-ahead* basis. Although much thought was devoted to the dangers that participants would game the system to sell or buy at discounts from market, insufficient consideration was given to mufti-participant cooperation.]
+FERC [became aware] of irregularities in the California wholesale electricity market prices, a business in which Enron participated. An orientation to the issues is provided by [testimony] before FERC, which  provides a concise summary.^[The short version, which I can relate as a former California electric utility regulatory official from personal knowledge, is that public electric utilities were losing a large share of industrial customers to self-generation. Many businesses found it cheaper to generate on-site than to pay tariff rates. Foreseeably, residential and business customers without the option to self-generate would come to  bear the entire cost of unamortized utility fixed assets (termed *stranded costs*), and rates for retail, commercial and small industrial customers would increase. The adopted solution was to require the utilities to sell their generation plants and buy power on a new public market on a *day-ahead*, tomorrow's estimated demand, and an *hour-ahead* basis for unanticipated demand. Although much thought was devoted to the dangers that participants would game the system to sell or buy at discounts from market, insufficient consideration was given to multi-participant cooperation.]
 
 Following Enron's bankruptcy, FERC began an intense investigation, including the email records of 149 Enron employees. A preliminary [staff report] issued six months later.
 
@@ -64,19 +80,20 @@ Following Enron's bankruptcy, FERC began an intense investigation, including the
 FERC obtained approximately 500,000 emails. Copies of these were acquired by Leslie Kaelbling of MIT and [published] by William W. Cohen of Carnegie Mellon University. It is one of the largest publicly available datasets of corporate email and is referred to as the Enron Corpus. The term *corpus* is used in natural language processing to denote a collection of related text.
 
 At the time, electronic record examination (*ediscovery*) in litigation was in a primitive state. It was not uncommon, for example, for paper copies of email to be offered. These would typically be read by teams of freelance attorneys looking for keywords. Advanced technology included scanning with optical character recognition and some proprietary software options to organize emails and capture the status of review. 
+
 Much of the focus was directed to keyword searches, sometimes called the *smoking gun* approach. Brute force examination misses opportunities to understand the social networks that reflect how the organization operates, what their concerns are and the haphazard exposure of document reviewers inevitably poses the [Elephant and the Blind Men Problem]. To triage the corpus quickly and efficiently, it should first be  be distilled and analyzed.
 
 # Analysis
 
 ## Data acquisition
 
-I obtained a copy of the [2009 version] of the corpus. It contains copies of emails of a private nature that involve three users have who since requested to be [redacted]. I have removed those 27 emails.^[Most of my work on data wrangling and preliminary took place in 2018 in Python, relying heavily on the NLTK and networkx packages.]
+I obtained a copy of the [2009 version] of the corpus. It contains copies of emails of a private nature that involve three users have who since requested to be [redacted]. I have removed those 27 emails.^[Most of my work on data wrangling and preliminary took place in 2010 in Python, relying heavily on the NLTK and networkx packages.]
 
 ### Conversion
 
 Each email was a plaintext file^[Most had been generated by Microsoft Outlook, but some older emails were produced in IBM Notes, which created some character encoding issues.] Each user had a directory tree similar to the one below.^[This user had 10 directories with 3048 files (the directory tree has been pruned to omit spurious detail) containing 12,147 lines and 69,226 words.]
 
-![Typical user data tree](https://s3-us-west-2.amazonaws.com/dslabs.nostromo/dtree.jpg)
+![Typical user data tree](img/dtree.jpg)
 
 Although tedious, traversing the directory tree, parsing the emails and loading them into an SQL database, was accomplished with a combination of Python and Perl scripting and standard bash tools. I do not reproduce that process here as it has little bearing on the main topic of this paper.
 
@@ -84,16 +101,37 @@ Although tedious, traversing the directory tree, parsing the emails and loading 
 
 While the emails were not in native format, the plain text versions contained nine principal segments, as shown in the figure below
 
-![Structural analysis of an Enron email](https://s3-us-west-2.amazonaws.com/tuva/parse_email.png)
+![Structural analysis of an Enron email](img/parse_email.png)
 
-Of those, the following were extracted from my earlier analysis for this paper:
+The following were extracted from my 2010 analysis for this paper:
+
+```{r}
+
+```
+
+
++----------+--------------+------+-----+---------+-------+
+| Field    | Type         | Null | Key | Default | Extra |
++----------+--------------+------+-----+---------+-------+
+| body     | mediumtext   | YES  |     | NULL    |       |
+| lastword | mediumtext   | YES  |     | NULL    |       |
+| hash     | varchar(250) | YES  | UNI | NULL    |       |
+| sender   | varchar(250) | YES  |     | NULL    |       |
+| tos      | text         | YES  |     | NULL    |       |
+| mid      | varchar(250) | YES  |     | NULL    |       |
+| ccs      | text         | YES  |     | NULL    |       |
+| date     | datetime     | YES  |     | NULL    |       |
+| subj     | varchar(500) | YES  |     | NULL    |       |
+| tosctn   | mediumint(9) | YES  |     | NULL    |       |
+| ccsctn   | mediumint(9) | YES  |     | NULL    |       |
+| source   | varchar(250) | YES  |     | NULL    |       |
++----------+--------------+------+-----+---------+-------+
 
 * sender
 * date
 * subject
-* recipient(s)
-* message body
-* new content
+* recipient
+* new content (*lastword*)
 
 ### Deduplication
 
@@ -111,7 +149,7 @@ After deduplication, the first filter applied was to eliminate all email from ex
 
 A second filter for internal email was used to eliminate broadcast messages and high frequency administrative messages. Indicia of broadcast messages were large numbers of recipients, high frequency, paucity of return correspondence and keyword in context screening. Administrative messages to single recipients were identified by frequency, lack of return correspondence and high frequency words. Many of these were nagging emails concerning the lack of approval of expense reports, for example. This filter reduced the dataset to approximately 24,000.
 
-The third filter limited the dataset to emails sent before Enron's December 2, 2001 bankruptcy. This filter reduced the email count to approximately 13,500, about 2.7% of the original total.^[*Ninety percent of everything is crap.* Theodore Sturgeon's Revelation, made in a dominantly paper-based information environment. *See also* Pareto distributions.] A few emails dated "1979-12-31" were reviewed and deleted.^[In the technology of the day, user desktop computers relied on an internal clock powered by a battery; when the battery died, the date reset to what the operating system, usually a variant of Windows, considered as the beginning of time.] The resulting dataset was named `g_enron` for its primary purpose, network graph analysis
+The third filter limited the dataset to emails sent before Enron's December 2, 2001 bankruptcy. This filter reduced the email count to approximately 13,500, about 2.7% of the original total.^[*Ninety percent of everything is crap.* Theodore Sturgeon's Revelation, made in a dominantly paper-based information environment. *See also* Pareto distributions.] A few emails dated "1979-12-31" were reviewed and deleted.^[In the technology of the day, user desktop computers relied on an internal clock powered by a battery; when the battery died, the date reset to what the operating system, usually a variant of Windows, considered as the beginning of time.] The resulting dataset was named `g_enron` for its initial purpose, network graph analysis
 
 ### Augmentation and transformation
 
@@ -143,7 +181,7 @@ To achieve a computationally practicable dataset for initial social network anal
 
 [md5]:https://en.wikipedia.org/wiki/MD5
 
-[latentnet]:Krivitsky PN, Handcock MS (2008). “Fitting position latent cluster models for social networks with latentnet.” _Journal of Statistical Software_, https://CRAN.R-project.org/package=latentnet
+[latentnet]:https://CRAN.R-project.org/package=latentnet
 
 [published]:https://www.cs.cmu.edu/~./enron/
 
@@ -166,16 +204,17 @@ To achieve a computationally practicable dataset for initial social network anal
 [McWhorter]:https://www.ted.com/talks/john_mcwhorter_txtng_is_killing_language_jk?language=en
 
 [Sedona Conference]:https://thesedonaconference.org/download-publication?fid=2978
-ESI Guidelines]:https://www.cand.uscourts.gov/eDiscovery
-Guidelines
+
+[ESI Guidelines]:https://www.cand.uscourts.gov/eDiscoveryGuidelines
 
 [Advisory Committee]:https://www.uscourts.gov/rules-policies/archives/committee-reports/advisory-committee-rules-civil-procedure-may-2014
 
 [ESI Checklist]:https://www.cand.uscourts.gov/eDiscoveryGuidelines
+
 [keyword limitations]:http://www.neworleansbar.org/news/committees/relying-on-keyword-search-for-e-discovery-it-may-harm-your-case
 
 [classic paper]:http://www.jmlr.org/papers/volume3/blei03a/blei03a.pdf
 
-[ESI Guidelines]:https://www.cand.uscourts.gov/eDiscovery
-Guidelines
+[Tidytext]:https://www.tidytextmining.com/
+
 

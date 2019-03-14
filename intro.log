@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.18 (TeX Live 2017/Debian) (preloaded format=pdflatex 2019.2.25)  11 MAR 2019 19:13
+This is pdfTeX, Version 3.14159265-2.6-1.40.18 (TeX Live 2017/Debian) (preloaded format=pdflatex 2019.2.25)  13 MAR 2019 09:23
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -756,7 +756,43 @@ Now handling font encoding PU ...
 ... no UTF-8 mapping file for font encoding PU
 )
 Package hyperref Info: Option `breaklinks' set `true' on input line 29.
-(/usr/share/texlive/texmf-dist/tex/latex/graphics/graphicx.sty
+(/usr/share/texlive/texmf-dist/tex/latex/tools/longtable.sty
+Package: longtable 2014/10/28 v4.11 Multi-page Table package (DPC)
+\LTleft=\skip48
+\LTright=\skip49
+\LTpre=\skip50
+\LTpost=\skip51
+\LTchunksize=\count114
+\LTcapwidth=\dimen125
+\LT@head=\box28
+\LT@firsthead=\box29
+\LT@foot=\box30
+\LT@lastfoot=\box31
+\LT@cols=\count115
+\LT@rows=\count116
+\c@LT@tables=\count117
+\c@LT@chunks=\count118
+\LT@p@ftn=\toks25
+) (/usr/share/texlive/texmf-dist/tex/latex/booktabs/booktabs.sty
+Package: booktabs 2016/04/27 v1.618033 publication quality tables
+\heavyrulewidth=\dimen126
+\lightrulewidth=\dimen127
+\cmidrulewidth=\dimen128
+\belowrulesep=\dimen129
+\belowbottomsep=\dimen130
+\aboverulesep=\dimen131
+\abovetopsep=\dimen132
+\cmidrulesep=\dimen133
+\cmidrulekern=\dimen134
+\defaultaddspace=\dimen135
+\@cmidla=\count119
+\@cmidlb=\count120
+\@aboverulesep=\dimen136
+\@belowrulesep=\dimen137
+\@thisruleclass=\count121
+\@lastruleclass=\count122
+\@thisrulewidth=\dimen138
+) (/usr/share/texlive/texmf-dist/tex/latex/graphics/graphicx.sty
 Package: graphicx 2017/06/01 v1.1a Enhanced LaTeX Graphics (DPC,SPQR)
 (/usr/share/texlive/texmf-dist/tex/latex/graphics/graphics.sty
 Package: graphics 2017/06/25 v1.2c Standard LaTeX Graphics (DPC,SPQR)
@@ -769,8 +805,8 @@ Package graphics Info: Driver file: pdftex.def on input line 99.
 (/usr/share/texlive/texmf-dist/tex/latex/graphics-def/pdftex.def
 File: pdftex.def 2018/01/08 v1.0l Graphics/color driver for pdftex
 ))
-\Gin@req@height=\dimen125
-\Gin@req@width=\dimen126
+\Gin@req@height=\dimen139
+\Gin@req@width=\dimen140
 ) (/usr/share/texlive/texmf-dist/tex/latex/oberdiek/grffile.sty
 Package: grffile 2017/06/30 v1.18 Extended file name support for graphics (HO)
 Package grffile Info: Option `multidot' is set to `true'.
@@ -781,40 +817,39 @@ Package grffile Info: \Gin@ii of package `graphicx' fixed on input line 494.
 Package: parskip 2001/04/09 non-zero parskip adjustments
 ) (/usr/share/texlive/texmf-dist/tex/latex/titling/titling.sty
 Package: titling 2009/09/04 v2.1d maketitle typesetting
-\thanksmarkwidth=\skip48
-\thanksmargin=\skip49
-\droptitle=\skip50
-)
-No file intro.aux.
+\thanksmarkwidth=\skip52
+\thanksmargin=\skip53
+\droptitle=\skip54
+) (./intro.aux)
 \openout1 = `intro.aux'.
 
-LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 85.
-LaTeX Font Info:    ... okay on input line 85.
-LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 85.
-LaTeX Font Info:    ... okay on input line 85.
-LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 85.
-LaTeX Font Info:    ... okay on input line 85.
-LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 85.
-LaTeX Font Info:    ... okay on input line 85.
-LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 85.
-LaTeX Font Info:    ... okay on input line 85.
-LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 85.
-LaTeX Font Info:    ... okay on input line 85.
-LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 85.
-LaTeX Font Info:    Try loading font information for TS1+cmr on input line 85.
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 86.
+LaTeX Font Info:    ... okay on input line 86.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 86.
+LaTeX Font Info:    ... okay on input line 86.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 86.
+LaTeX Font Info:    ... okay on input line 86.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 86.
+LaTeX Font Info:    ... okay on input line 86.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 86.
+LaTeX Font Info:    ... okay on input line 86.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 86.
+LaTeX Font Info:    ... okay on input line 86.
+LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 86.
+LaTeX Font Info:    Try loading font information for TS1+cmr on input line 86.
 (/usr/share/texlive/texmf-dist/tex/latex/base/ts1cmr.fd
 File: ts1cmr.fd 2014/09/29 v2.5h Standard LaTeX font definitions
 )
-LaTeX Font Info:    ... okay on input line 85.
-LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 85.
-LaTeX Font Info:    ... okay on input line 85.
-LaTeX Font Info:    Checking defaults for PU/pdf/m/n on input line 85.
-LaTeX Font Info:    ... okay on input line 85.
-LaTeX Font Info:    Try loading font information for T1+lmr on input line 85.
+LaTeX Font Info:    ... okay on input line 86.
+LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 86.
+LaTeX Font Info:    ... okay on input line 86.
+LaTeX Font Info:    Checking defaults for PU/pdf/m/n on input line 86.
+LaTeX Font Info:    ... okay on input line 86.
+LaTeX Font Info:    Try loading font information for T1+lmr on input line 86.
 (/usr/share/texmf/tex/latex/lm/t1lmr.fd
 File: t1lmr.fd 2009/10/30 v1.6 Font defs for Latin Modern
 )
-LaTeX Info: Redefining \microtypecontext on input line 85.
+LaTeX Info: Redefining \microtypecontext on input line 86.
 Package microtype Info: Generating PDF output.
 Package microtype Info: Character protrusion enabled (level 2).
 Package microtype Info: Using protrusion set `basicmath'.
@@ -862,34 +897,35 @@ File: mt-cmr.cfg 2013/05/19 v2.2 microtype config. file: Computer Modern Roman
 * \@reversemarginfalse
 * (1in=72.27pt=25.4mm, 1cm=28.453pt)
 
-\AtBeginShipoutBox=\box28
-Package hyperref Info: Link coloring OFF on input line 85.
+\AtBeginShipoutBox=\box32
+Package hyperref Info: Link coloring OFF on input line 86.
 (/usr/share/texlive/texmf-dist/tex/latex/hyperref/nameref.sty
 Package: nameref 2016/05/21 v2.44 Cross-referencing by name of section
 (/usr/share/texlive/texmf-dist/tex/generic/oberdiek/gettitlestring.sty
 Package: gettitlestring 2016/05/16 v1.5 Cleanup title references (HO)
 )
-\c@section@level=\count114
+\c@section@level=\count123
 )
-LaTeX Info: Redefining \ref on input line 85.
-LaTeX Info: Redefining \pageref on input line 85.
-LaTeX Info: Redefining \nameref on input line 85.
+LaTeX Info: Redefining \ref on input line 86.
+LaTeX Info: Redefining \pageref on input line 86.
+LaTeX Info: Redefining \nameref on input line 86.
+(./intro.out) (./intro.out)
 \@outlinefile=\write3
 \openout3 = `intro.out'.
 
 (/usr/share/texlive/texmf-dist/tex/context/base/mkii/supp-pdf.mkii
 [Loading MPS to PDF converter (version 2006.09.02).]
-\scratchcounter=\count115
-\scratchdimen=\dimen127
-\scratchbox=\box29
-\nofMPsegments=\count116
-\nofMParguments=\count117
-\everyMPshowfont=\toks25
-\MPscratchCnt=\count118
-\MPscratchDim=\dimen128
-\MPnumerator=\count119
-\makeMPintoPDFobject=\count120
-\everyMPtoPDFconversion=\toks26
+\scratchcounter=\count124
+\scratchdimen=\dimen141
+\scratchbox=\box33
+\nofMPsegments=\count125
+\nofMParguments=\count126
+\everyMPshowfont=\toks26
+\MPscratchCnt=\count127
+\MPscratchDim=\dimen142
+\MPnumerator=\count128
+\makeMPintoPDFobject=\count129
+\everyMPtoPDFconversion=\toks27
 ) (/usr/share/texlive/texmf-dist/tex/latex/oberdiek/epstopdf-base.sty
 Package: epstopdf-base 2016/05/15 v2.6 Base part for package epstopdf
 (/usr/share/texlive/texmf-dist/tex/latex/oberdiek/grfext.sty
@@ -905,22 +941,109 @@ G,.JBIG2,.JB2,.eps]
 File: epstopdf-sys.cfg 2010/07/13 v1.3 Configuration of (r)epstopdf for TeX Liv
 e
 ))
+LaTeX Font Info:    Try loading font information for T1+lmtt on input line 116.
 
-! LaTeX Error: Environment Verbatim undefined.
+(/usr/share/texmf/tex/latex/lm/t1lmtt.fd
+File: t1lmtt.fd 2009/10/30 v1.6 Font defs for Latin Modern
+)
+LaTeX Font Info:    Try loading font information for OT1+lmr on input line 157.
 
-See the LaTeX manual or LaTeX Companion for explanation.
-Type  H <return>  for immediate help.
- ...                                              
-                                                  
-l.115 \begin{Verbatim}
-                      [frame=single] 
+(/usr/share/texmf/tex/latex/lm/ot1lmr.fd
+File: ot1lmr.fd 2009/10/30 v1.6 Font defs for Latin Modern
+)
+LaTeX Font Info:    Try loading font information for OML+lmm on input line 157.
+
+(/usr/share/texmf/tex/latex/lm/omllmm.fd
+File: omllmm.fd 2009/10/30 v1.6 Font defs for Latin Modern
+)
+LaTeX Font Info:    Try loading font information for OMS+lmsy on input line 157
+.
+(/usr/share/texmf/tex/latex/lm/omslmsy.fd
+File: omslmsy.fd 2009/10/30 v1.6 Font defs for Latin Modern
+)
+LaTeX Font Info:    Try loading font information for OMX+lmex on input line 157
+.
+(/usr/share/texmf/tex/latex/lm/omxlmex.fd
+File: omxlmex.fd 2009/10/30 v1.6 Font defs for Latin Modern
+)
+LaTeX Font Info:    External font `lmex10' loaded for size
+(Font)              <10> on input line 157.
+LaTeX Font Info:    External font `lmex10' loaded for size
+(Font)              <7> on input line 157.
+LaTeX Font Info:    External font `lmex10' loaded for size
+(Font)              <5> on input line 157.
+LaTeX Font Info:    Try loading font information for U+msa on input line 157.
+(/usr/share/texlive/texmf-dist/tex/latex/amsfonts/umsa.fd
+File: umsa.fd 2013/01/14 v3.01 AMS symbols A
+) (/usr/share/texlive/texmf-dist/tex/latex/microtype/mt-msa.cfg
+File: mt-msa.cfg 2006/02/04 v1.1 microtype config. file: AMS symbols (a) (RS)
+)
+LaTeX Font Info:    Try loading font information for U+msb on input line 157.
+(/usr/share/texlive/texmf-dist/tex/latex/amsfonts/umsb.fd
+File: umsb.fd 2013/01/14 v3.01 AMS symbols B
+) (/usr/share/texlive/texmf-dist/tex/latex/microtype/mt-msb.cfg
+File: mt-msb.cfg 2005/06/01 v1.0 microtype config. file: AMS symbols (b) (RS)
+)
+LaTeX Font Info:    External font `lmex10' loaded for size
+(Font)              <8> on input line 172.
+LaTeX Font Info:    External font `lmex10' loaded for size
+(Font)              <6> on input line 172.
+[1
+
+{/var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map}]
+
+Package hyperref Warning: Suppressing link with empty target on input line 213.
+
+
+<img/dtree.jpg, id=84, 147.55125pt x 803.0pt>
+File: img/dtree.jpg Graphic file (type jpg)
+<use img/dtree.jpg>
+Package pdftex.def Info: img/dtree.jpg  used on input line 233.
+(pdftex.def)             Requested size: 119.52484pt x 650.47546pt.
+
+LaTeX Warning: Float too large for page by 23.98988pt on input line 235.
+
+<img/parse_email.png, id=85, 614.295pt x 794.97pt>
+File: img/parse_email.png Graphic file (type png)
+<use img/parse_email.png>
+Package pdftex.def Info: img/parse_email.png  used on input line 251.
+(pdftex.def)             Requested size: 469.75604pt x 607.9196pt.
+[2] [3 <./img/dtree.jpg>] [4 <./img/parse_email.png>]
+LaTeX Font Info:    Try loading font information for TS1+lmr on input line 294.
+
+(/usr/share/texmf/tex/latex/lm/ts1lmr.fd
+File: ts1lmr.fd 2009/10/30 v1.6 Font defs for Latin Modern
+) [5]
+Package atveryend Info: Empty hook `BeforeClearDocument' on input line 399.
+[6]
+Package atveryend Info: Empty hook `AfterLastShipout' on input line 399.
+(./intro.aux)
+Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 399.
+Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 399.
+Package rerunfilecheck Info: File `intro.out' has not changed.
+(rerunfilecheck)             Checksum: 9F29AECCDBDBFEF9763A51021C6B50AF;1447.
+Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 399.
+ ) 
 Here is how much of TeX's memory you used:
- 12049 strings out of 494880
- 173062 string characters out of 6179601
- 267838 words of memory out of 5000000
- 15258 multiletter control sequences out of 15000+600000
- 22999 words of font info for 28 fonts, out of 8000000 for 9000
+ 12599 strings out of 494880
+ 181545 string characters out of 6179601
+ 280042 words of memory out of 5000000
+ 15614 multiletter control sequences out of 15000+600000
+ 67693 words of font info for 97 fonts, out of 8000000 for 9000
  36 hyphenation exceptions out of 8191
- 32i,3n,38p,230b,299s stack positions out of 5000i,500n,10000p,200000b,80000s
+ 32i,8n,38p,259b,436s stack positions out of 5000i,500n,10000p,200000b,80000s
+{/usr/share/texmf/fonts/enc/dvips/lm/lm-ts1.enc}{/usr/share/texmf/fonts/enc/d
+vips/lm/lm-ec.enc}</usr/share/texmf/fonts/type1/public/lm/lmbx10.pfb></usr/shar
+e/texmf/fonts/type1/public/lm/lmbx12.pfb></usr/share/texmf/fonts/type1/public/l
+m/lmr10.pfb></usr/share/texmf/fonts/type1/public/lm/lmr17.pfb></usr/share/texmf
+/fonts/type1/public/lm/lmr6.pfb></usr/share/texmf/fonts/type1/public/lm/lmr7.pf
+b></usr/share/texmf/fonts/type1/public/lm/lmr8.pfb></usr/share/texmf/fonts/type
+1/public/lm/lmri10.pfb></usr/share/texmf/fonts/type1/public/lm/lmri8.pfb></usr/
+share/texmf/fonts/type1/public/lm/lmtt10.pfb>
+Output written on intro.pdf (6 pages, 502681 bytes).
+PDF statistics:
+ 179 PDF objects out of 1000 (max. 8388607)
+ 157 compressed objects within 2 object streams
+ 41 named destinations out of 1000 (max. 500000)
+ 14443 words of extra memory for PDF output out of 17280 (max. 10000000)
 
-!  ==> Fatal error occurred, no output PDF file produced!
