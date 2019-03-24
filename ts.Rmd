@@ -812,6 +812,7 @@ kable(clos(Qall,25)) %>%   kable_styling(bootstrap_options = "striped", full_wid
 kable(betw(Qall,25)) %>%   kable_styling(bootstrap_options = "striped", full_width = F, position = "center")
 ```
 
+ipsum didat
 [staff report]:http://elibrary.ferc.gov/idmws/common/opennat.asp?fileID=9548231
 
 [Wolak report]:http://www.caiso.com/Documents/ReportonRedesign-CaliforniaReal-TimeEnergyandAncillaryServicesMarkets.pdf
