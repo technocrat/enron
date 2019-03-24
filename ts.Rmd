@@ -36,6 +36,10 @@ set.seed(2203)
 
 '%out%' <- Negate ('%in%')
 
+# format digits to zero places
+
+comma0 <- function(x) format(x, digits = 0, big.mark = ",")
+
 # format digits to two places
 
 comma2 <- function(x) format(x, digits = 2, big.mark = ",")
@@ -112,7 +116,38 @@ ggplot(data = x, aes(x = date, y = log10(n)))      				      +
    	theme(axis.text.x = element_text(angle = 30, hjust = 1))
 }
 
+# find the users with the top n betweenness scores 
+# in a graph object	x
+betw <-  function(x,n) {
+	enframe(degree(x))        						%>% 
+	mutate(userid = userid$userid[name]) 	%>%
+	select(userid, value)			        		%>%
+	rename(betweenness = value) 				  %>%
+	arrange(desc(betweenness))					  %>%
+	top_n(n)
+}
 
+# find the users with the top n closeness scores 
+# in a graph object	x
+clos <-  function(x,n) {
+	enframe(closeness(x, cmode="suminvdir")) %>% 
+	mutate(userid = userid$userid[name]) 	%>%
+	select(userid, value)			        		%>%
+	rename(closeness = value) 				    %>%
+	arrange(desc(closeness))					    %>%
+	top_n(n)
+}
+
+# find the users with the top n degree scores 
+# in a graph object	x
+deg <-  function(x,n) {
+	enframe(degree(x))        						%>% 
+	mutate(userid = userid$userid[name]) 	%>%
+	select(userid, value)			        		%>%
+	rename(degree = value)				      	%>%
+	arrange(desc(degree))					        %>%
+	top_n(n)
+}
 
 # data cleansing of recipient emails
 
@@ -208,7 +243,7 @@ g_enron <- left_join(g_enron, userid)
 colnames(userid) <- c("user", "userid")
 
 # for inter-session conveience
-# save(g_enron, file = "g_enron.Rda")
+#save(g_enron, file = "g_enron.Rda")
 
 # remove unneed objects from namespace
 
@@ -495,7 +530,7 @@ FERC obtained approximately 500,000 emails. Copies of these were acquired by Les
 
 At the time, electronic record examination (*ediscovery*) in litigation was in a primitive state. It was not uncommon, for example, for paper copies of email to be offered. These would typically be read by teams of freelance attorneys looking for keywords. Advanced technology included scanning with optical character recognition and some proprietary software options to organize emails and capture the status of review. 
 
-Much of the focus was directed to keyword searches, sometimes called the *smoking gun* approach. Brute force examination misses opportunities to understand the social networks that reflect how the organization operates, what their concerns are and the haphazard exposure of document reviewers inevitably poses the [Elephant and the Blind Men Problem]. To triage the corpus quickly and efficiently, it should first be distilled and analyzed in terms of its network characteritics -- who corresponds privately with whom.
+Much of the focus was directed to keyword searches, sometimes called the *smoking gun* approach. Brute force examination misses opportunities to understand the social networks that reflect how the organization operates, what their concerns are and the haphazard exposure of document reviewers inevitably poses the [Elephant and the Blind Men Problem]. To triage the corpus quickly and efficiently, it should first be distilled and analyzed in terms of its network characteristics -- who corresponds privately with whom.
 
 # Analysis
 
@@ -549,6 +584,7 @@ While the emails were not in native format, the plain text versions contained ni
 ![Structural analysis of an Enron email](img/parse_email.png)
 
 
+
 ### Deduplication
 
 Using scripting tools, each text file extraction created a *payload* of the new content in the related email, capturing the text between the beginning metadata and the following metadata for email purposes. A `payload` hash, an [md5] encoded message digest^[In theory, it is possible that two non-identical sequences of bytes be encoded identically; the probability is low enough to make an md5 digest usable as a checksum verification, its purpose here.] was used in the initial analysis as a primary key to assure the uniqueness of each record. Approximately half of the corpus consisted of duplicates, such as the original message in the sender's sent file and one or more copies in the recipient's inbox, at a minimum. Multiple recipients and recipients who used email folders as a filing system were another source of duplicate messages. Applying this filter reduced the corpus to approximately 250,000 emails.
@@ -559,7 +595,7 @@ For natural language processing (**NLP**) purposes, treating the `payload` rathe
 
 ### Prioritization
 
-Traditional analysis of emails was conducted on the principe that *something may be overlooked,* which delays the value of email in preliminary analysis. Prioritizing always leaves open the option of reviewing the set-asides later.
+Traditional analysis of emails was conducted on the principle that *something may be overlooked,* which delays the value of email in preliminary analysis. Prioritizing always leaves open the option of reviewing the set-asides later.
 
 After deduplication, the first filter applied was to eliminate all email from external addresses that were not also recipients from internal addresses. Spam, newsletters and the like have low information potential. This filter reduced the remaining half of the corpus by half again, leaving approximately 125,000 emails.
 
@@ -582,7 +618,7 @@ The resulting graph had low density, and the the dataset was further trimmed by 
 
 ## The network composition
 
-The core Enron social network is defined to consist of those emails in the corpus consisting of one enrom.com sender to one enrom.com recipient (excluding apparently automated accounts) if the recipient either replies to the sender or initiates a contact with the sender.
+The core Enron social network is defined to consist of those emails in the corpus consisting of one enron.com sender to one Enron.com recipient (excluding apparently automated accounts) if the recipient either replies to the sender or initiates a contact with the sender.
 
 ### Time frame
 
@@ -590,14 +626,14 @@ All emails from January 1, 2000 to December 2, 2001 the date of the [bankruptcy]
 
 ### Participants
 
-A total of `r comma2(nrow(userid))` unique users are represented. However, all but `r census(Qall)` users are non-reciprocating or isolated. To identify those, the sender and recipient userids were extracted and convered to a graph object, which will be referred to as the **core Enron corpus.** Following are the characteristics of the 23-month series. The attributes are 
+A total of `r comma2(nrow(userid))` unique users are represented. However, all but `r census(Qall)` users are non-reciprocating or isolated. To identify those, the sender and recipient userids were extracted and converted to a graph object, which will be referred to as the **core Enron corpus.** Following are the characteristics of the 23-month series. The attributes are 
 
 * vertices: users
 * directed: from-to and to-from distinguished
 * hyper: contains emails from or to multiple users
 * loops: includes email from user to herself
 * multiple: multi-dimensional object
-* bipartite: set of two vertices where no vertice in the same set is connected
+* bipartite: set of two vertices where no vertex in the same set is connected
 * edges: number of emails
 
 ```{r, echo=FALSE, results="as-is", comment=NA, message=FALSE,  error = FALSE,  warning=FALSE}
@@ -620,11 +656,12 @@ plot_ts(Qall_ts, "January 2000-December 2001")
 
 ### Volume sent and received January 2000-December 2001
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, results="as-is", comment=NA, message=FALSE,  error = FALSE,  warning=FALSE}
 send_p
 ```
 
-```{r, echo=TRUE}
+
+```{r, echo=FALSE, results="as-is", comment=NA, message=FALSE,  error = FALSE,  warning=FALSE}
 recd_p
 ```
 
@@ -719,11 +756,61 @@ plot_graph(Q401, "October-November 2000")
 plot_ts(Q401_ts, "October-November 2001")
 ```
 
-### User prominence
+### Naive measures of user prominence
 
-#### Frequency
+As illustrated by the quarterly tables and plot above, the number of users participating in the social network varied over time. However, only users `r All_qtrs` have activity in all seven quarters. 
 
-Lorem ipsum, y'all
+Alternatively there are top-25 lists of emails from one user to another
+
+```{r, echo=FALSE}
+kable(top_n(msg_count,25)) %>%   kable_styling(bootstrap_options = "striped", full_width = F, position = "center")
+
+```
+The users `r All_qtrs` appear `r sum(All_qtrs %in% msg_count$s_uid[1:10])` among time among them as senders and `r sum(All_qtrs %in% msg_count$r_uid[1:10])` times as recipients.
+
+The top senders were
+
+```{r, echo=FALSE}
+kable(top_n(s_uid_count,25)) %>%  kable_styling(bootstrap_options = "striped", full_width = F, position = "center")
+```
+
+The users `r All_qtrs` appear among them `r sum(All_qtrs %in% s_uid_count$s_uid[1:10])` times.
+
+The top recipients were
+
+```{r, echo=FALSE}
+kable(top_n(r_uid_count, 25)) %>%   kable_styling(bootstrap_options = "striped", full_width = F, position = "center")
+```
+
+The users `r All_qtrs` appear among them `r sum(All_qtrs %in% r_uid_count$r_uid[1:10])` times as recipients.
+
+Only one user of the three most frequent email users was among the users in the top-pairs list, the top senders list and the top receivers list. Another was in the top senders list and the top receivers list. The third was missing from all three lists. 
+
+### Graph measures of user connectedness
+
+#### Degree
+
+`Degree` is one of many metrics that measure the relative position in a graph of a vertex, or user. It is simply the number of connections with different users. The top 25 users ranked by that criterion are:
+
+```{r, echo=FALSE}
+kable(deg(Qall,25)) %>%   kable_styling(bootstrap_options = "striped", full_width = F, position = "center")
+```
+### Closeness
+
+`Closeness` measures the geodesic bewtween a vertex and all other vertices in a graph.
+
+```{r, echo=FALSE}
+kable(clos(Qall,25)) %>%   kable_styling(bootstrap_options = "striped", full_width = F, position = "center")
+```
+
+### Betweeness
+
+`Betweenness` is a measure of the extent to which graph paths use a vertex to connect other vertices.
+
+
+```{r, echo=FALSE}
+kable(betw(Qall,25)) %>%   kable_styling(bootstrap_options = "striped", full_width = F, position = "center")
+```
 
 [staff report]:http://elibrary.ferc.gov/idmws/common/opennat.asp?fileID=9548231
 
