@@ -75,13 +75,13 @@ cohort <- function(x) {
   network.vertex.names(x)
 }
 
-# plot with vertix labels
+# plot with all vertix labels
 
 node_plot <- function(x){
   ggnet2(x, label = TRUE, label.size = 2, node.color = "white",     edge.size = 0.25, edge.color = "grey")
 }
 
-# x is a network object, y is the date interval character
+# x is a network object, y is the date interval string
 
 plot_graph <- function(x,y) {
 ggplot(x, aes(x, y, xend = xend, yend = yend)) +
@@ -149,6 +149,14 @@ deg <-  function(x,n) {
 	top_n(n)
 }
 
+# Get x-y coordinates for selective plotting of userid
+# x is a network object
+
+get_xy <- function(x) {
+  ggnetwork(x)
+}
+
+
 # data cleansing of recipient emails
 
 # email recipient cleanser patterns 
@@ -156,107 +164,111 @@ faux_nl   	<-	"\\\n"
 left_brak	  <-	"\\["
 right_brak	<-	"\\]"
 
+# ============================================================
+# Code in this block commented out for `knitr` purposes
 # load source data set from AWS
 
-con <- url("https://s3-us-west-2.amazonaws.com/dslabs.nostromo/enron.Rda")
-load(con)
-close(con)
-
-# Note: tibbles do not serialize
-
-enron <- as_tibble(enron)
-
-# remove supurious characters
-
-g_enron <- enron 								                		  %>% 
-	mutate(tos = str_replace_all(tos, faux_nl, ""))		  %>%
-	mutate(tos = str_replace_all(tos, left_brak, "")) 	%>%
-	mutate(tos = str_replace_all(tos, right_brak, ""))	%>%
-	mutate(ccs = str_replace_all(ccs, faux_nl, ""))		  %>%
-	mutate(ccs = str_replace_all(ccs, left_brak, ""))	  %>%
-	mutate(ccs = str_replace_all(ccs, right_brak, ""))	
-
-# restrict to single recipient
-
-g_enron <- g_enron %>% filter(tosctn == 1 & ccsctn == 0)
-
-# censor non-enron addresses
-
-g_enron <- g_enron                        %>% 
-  filter(str_detect(tos, "enron.com"))    %>%
-  filter(str_detect(sender, "enron.com")) %>%
-  select(sender, tos, date, lastword)     %>%
-  rename(recipient = tos)
-
-# remove @enron.com from user names and single quotes
-
-g_enron  <- g_enron                                           %>%
-  mutate(sender = str_replace_all(sender, ".enron.com", ""))  %>% 
-  mutate(recipient = str_replace_all(recipient, 
-                                     ".enron.com.", ""))      %>%
-  mutate(recipient = str_replace_all(recipient, "'", ""))
-
-# censor internal group addresses
-
-excluded_users <- c("all-hou.dl-bus", "all.america", "all.employees", "center.dl_portland", "chick.home", "clickathome", "clickathomepilot3", "dl-ga-all-ews", "dl-ga-all_enron_worldwide ", "dl-ga-all_enron_worldwide1", "dl-ga_all_enron_worldwide2", "dl-gal-all_enron_north_america2", "enron.chairman", "enron.gss", "executive.committee", "expense.report", "group.dl-ets", "helpdesk.mailman", "info", "outlook.team", "perfmgmt", "perfmgmt@ect", "portland", "portland.desk", "portland.shift", "sap_security", "the.globalist", "traders.eol", "trading .williams", "transportation.parking", "undisclosed-recipients")
-
-g_enron <- g_enron %>% filter(sender %out% excluded_users)
-g_enron <- g_enron %>% filter(recipient %out% excluded_users)
-
-# add record identification
-
-g_enron <- rownames_to_column(g_enron, var = "recno")
-
-# collect unique user names
-
-sender    <- g_enron %>% select(sender)     %>% distinct()
-recipient <- g_enron %>% select(recipient)  %>% distinct()
-colnames(sender)    <- "user"
-colnames(recipient) <- "user"
-users <- bind_rows(sender,recipient)
-users <- users %>% distinct()
-
-# assign numeric identifiers to users
-
-user_pool <- seq(1000,nrow(users)+1001,1)
-userid <- enframe(sample(user_pool, nrow(users), 
-          replace = FALSE))                     %>%
-          select(-name)                         %>%
-          rename(userid = value)                %>%
-          mutate(userid = as.integer(userid))
-userid <- bind_cols(users, userid)
-
-# save(userid, file = "userid.Rda")
-
-# rename userid columns to join to g_enron as sender s_uid
-
-colnames(userid) <- c("sender", "s_uid")
-g_enron <- left_join(g_enron, userid)
-
-# again for recipient r_uid
-
-colnames(userid) <- c("recipient", "r_uid")
-g_enron <- left_join(g_enron, userid)
-
-# restore names
-
-colnames(userid) <- c("user", "userid")
-
-# for inter-session conveience
+# con <- url("https://s3-us-west-2.amazonaws.com/dslabs.nostromo/enron.Rda")
+# load(con)
+# close(con)
+# 
+# # Note: tibbles do not serialize
+# 
+# enron <- as_tibble(enron)
+# 
+# # remove supurious characters
+# 
+# g_enron <- enron 								                		  %>% 
+# 	mutate(tos = str_replace_all(tos, faux_nl, ""))		  %>%
+# 	mutate(tos = str_replace_all(tos, left_brak, "")) 	%>%
+# 	mutate(tos = str_replace_all(tos, right_brak, ""))	%>%
+# 	mutate(ccs = str_replace_all(ccs, faux_nl, ""))		  %>%
+# 	mutate(ccs = str_replace_all(ccs, left_brak, ""))	  %>%
+# 	mutate(ccs = str_replace_all(ccs, right_brak, ""))	
+# 
+# # restrict to single recipient
+# 
+# g_enron <- g_enron %>% filter(tosctn == 1 & ccsctn == 0)
+# 
+# # censor non-enron addresses
+# 
+# g_enron <- g_enron                        %>% 
+#   filter(str_detect(tos, "enron.com"))    %>%
+#   filter(str_detect(sender, "enron.com")) %>%
+#   select(sender, tos, date, lastword)     %>%
+#   rename(recipient = tos)
+# 
+# # remove @enron.com from user names and single quotes
+# 
+# g_enron  <- g_enron                                           %>%
+#   mutate(sender = str_replace_all(sender, ".enron.com", ""))  %>% 
+#   mutate(recipient = str_replace_all(recipient, 
+#                                      ".enron.com.", ""))      %>%
+#   mutate(recipient = str_replace_all(recipient, "'", ""))
+# 
+# # censor internal group addresses
+# 
+# excluded_users <- c("all-hou.dl-bus", "all.america", "all.employees", "center.dl_portland", "chick.home", "clickathome", "clickathomepilot3", "dl-ga-all-ews", "dl-ga-all_enron_worldwide ", "dl-ga-all_enron_worldwide1", "dl-ga_all_enron_worldwide2", "dl-gal-all_enron_north_america2", "enron.chairman", "enron.gss", "executive.committee", "expense.report", "group.dl-ets", "helpdesk.mailman", "info", "outlook.team", "perfmgmt", "perfmgmt@ect", "portland", "portland.desk", "portland.shift", "sap_security", "the.globalist", "traders.eol", "trading .williams", "transportation.parking", "undisclosed-recipients")
+# 
+# g_enron <- g_enron %>% filter(sender %out% excluded_users)
+# g_enron <- g_enron %>% filter(recipient %out% excluded_users)
+# 
+# # add record identification
+# 
+# g_enron <- rownames_to_column(g_enron, var = "recno")
+# 
+# # collect unique user names
+# 
+# sender    <- g_enron %>% select(sender)     %>% distinct()
+# recipient <- g_enron %>% select(recipient)  %>% distinct()
+# colnames(sender)    <- "user"
+# colnames(recipient) <- "user"
+# users <- bind_rows(sender,recipient)
+# users <- users %>% distinct()
+# 
+# # assign numeric identifiers to users
+# 
+# set.seed(2203)
+# user_pool <- seq(1000,nrow(users)+1001,1)
+# userid <- enframe(sample(user_pool, nrow(users), 
+#           replace = FALSE))                     %>%
+#           select(-name)                         %>%
+#           rename(userid = value)                %>%
+#           mutate(userid = as.integer(userid))
+# userid <- bind_cols(users, userid)
+# 
+# #save(userid, file = "userid.Rda")
+# 
+# # rename userid columns to join to g_enron as sender s_uid
+# 
+# colnames(userid) <- c("sender", "s_uid")
+# g_enron <- left_join(g_enron, userid)
+# 
+# # again for recipient r_uid
+# 
+# colnames(userid) <- c("recipient", "r_uid")
+# g_enron <- left_join(g_enron, userid)
+# 
+# # replace r_uid with userid
+# 
+# userid <- userid %>% rename(userid = r_uid)
+# 
+# # for inter-session conveience
 #save(g_enron, file = "g_enron.Rda")
 
-# remove unneed objects from namespace
-
-rm(enron, faux_nl, left_brak, right_brak, user_pool, users)
+# # remove unneed objects from namespace
+# 
+# rm(enron, faux_nl, left_brak, right_brak, user_pool, users)
 
 # divide into quarters and create file for all quarters
 # including only symmetrical pairs sender -> recipient
 # and recipient-sender messages in same period
 # Naming convention: Q300 is Quarter 1 of 2000
 
-# load("g_enron.Rda") checkpoint version between sessions
+# For convenience to avoid running commented block above
 
-
+load("g_enron.Rda")
+load("userid.Rda")  # reload originally assigned userids
 
 # For the entire 23-month period and each quarter create objects
 
@@ -278,7 +290,16 @@ Qall <- Qall_sparse 									%>%
 	nets(.) 											      %>% 
 	neti(.)
 
-# Users remaining in network
+# Get x-y coordinates for selective plotting of userid
+# x is a network object
+
+get_xy <- function(x) {
+  ggnetwork(x)
+}
+
+  
+# Userids remaining in network
+
 all_users <- network.vertex.names(Qall)
 
 # create time series chart object
@@ -584,7 +605,6 @@ While the emails were not in native format, the plain text versions contained ni
 ![Structural analysis of an Enron email](img/parse_email.png)
 
 
-
 ### Deduplication
 
 Using scripting tools, each text file extraction created a *payload* of the new content in the related email, capturing the text between the beginning metadata and the following metadata for email purposes. A `payload` hash, an [md5] encoded message digest^[In theory, it is possible that two non-identical sequences of bytes be encoded identically; the probability is low enough to make an md5 digest usable as a checksum verification, its purpose here.] was used in the initial analysis as a primary key to assure the uniqueness of each record. Approximately half of the corpus consisted of duplicates, such as the original message in the sender's sent file and one or more copies in the recipient's inbox, at a minimum. Multiple recipients and recipients who used email folders as a filing system were another source of duplicate messages. Applying this filter reduced the corpus to approximately 250,000 emails.
@@ -612,9 +632,12 @@ To achieve a computationally practicable dataset for initial social network anal
 ```{r, echo=FALSE, results="as-is", comment=NA, message=FALSE,  error = FALSE,  warning=FALSE}
 plot_graph(Qall_sparse, "January 2000-December 2001")
 ```
- 
 
 The resulting graph had low density, and the the dataset was further trimmed by restricting it to reciprocal correspondents, each of whom sent an email to the other, either as a reply or an original message, excluding emails by a user to herself.
+
+```{r, echo=FALSE, results="as-is", comment=NA, message=FALSE,  error = FALSE,  warning=FALSE}
+plot_graph(Qall, "January 2000-December 2001")
+```
 
 ## The network composition
 
@@ -640,7 +663,8 @@ A total of `r comma2(nrow(userid))` unique users are represented. However, all b
 Qall
 ```
 
-Graph objects shown here represent users (vertices) by dots and emails (edges) by lines. The length of the line is not a measure of distance. The visualization algorithm arranges vertices and edges to promote recognition of connections only.
+Graph objects shown here represent users (vertices) by dots and emails (edges) by lines. The length of the line is not a measure of distance. The visualization algorithm arranges vertices and edges to promote recognition of connections only. It is also important to note that the visual representation of graph objects is not stable. The identical graph and identical algorithm will produce visual representations that portray the same graph object in different orientatinos. The relationships are preserved, but the geometery is not.
+
 
 ### Time series of core Enron corpus January 2000-December 2001
 
@@ -758,49 +782,73 @@ plot_ts(Q401_ts, "October-November 2001")
 
 ### Naive measures of user prominence
 
-As illustrated by the quarterly tables and plot above, the number of users participating in the social network varied over time. However, only users `r All_qtrs` have activity in all seven quarters. 
-
-Alternatively there are top-25 lists of emails from one user to another
+As illustrated by the quarterly tables and plot above, the number of users participating in the social network varied over time. However, only users `r All_qtrs` have activity in all seven quarters. In what other ways are these users distinguished?
 
 ```{r, echo=FALSE}
-kable(top_n(msg_count,25)) %>%   kable_styling(bootstrap_options = "striped", full_width = F, position = "center")
-
+ ggnet2(Qall, label = All_qtrs, label.size = 4, label.color = "darkblue", node.size = 0.25, edge.size = 0.25, edge.color = "grey")
 ```
-The users `r All_qtrs` appear `r sum(All_qtrs %in% msg_count$s_uid[1:10])` among time among them as senders and `r sum(All_qtrs %in% msg_count$r_uid[1:10])` times as recipients.
+
+In the graph showing the three users active every quarter, two of them appear to be at the centers of groups and one, user 1718, appears on the periphery.
+
+Alternatively, the top-10 list of users with reciprocal messages includes only user 1876.
+
+```{r, echo=FALSE}
+
+kable(top_n(msg_count,10)) %>%   kable_styling(bootstrap_options = "striped", full_width = F, position = "center")
+paired <- top_n(msg_count,10) %>% select(s_uid, r_uid) 
+p_left <- paired[1]
+p_right <- paired[2]
+colnames(p_left) <- 'userid'
+colnames(p_right) <- 'userid'
+paired <- bind_rows(p_left, p_right) %>% distinct()
+ggnet2(Qall, label = paired$userid, label.size = 4, label.color = "darkblue", node.size = 0.25, edge.size = 0.25, edge.color = "grey")
+```
+
+This view of user visibility presents a different impression. User 1876 is still the only user active over all four quarters who is included, and remains at the center of one of the patterns.
 
 The top senders were
 
 ```{r, echo=FALSE}
 kable(top_n(s_uid_count,25)) %>%  kable_styling(bootstrap_options = "striped", full_width = F, position = "center")
+to_show <- top_n(s_uid_count,25)%>% select(-n) %>% distinct() 
+ggnet2(Qall, label = to_show$s_uid, label.size = 4, label.color = "darkblue", node.size = 0.25, edge.size = 0.25, edge.color = "grey")
 ```
 
-The users `r All_qtrs` appear among them `r sum(All_qtrs %in% s_uid_count$s_uid[1:10])` times.
+The users 1876 and 1453 appear among the top senders.
+
 
 The top recipients were
 
 ```{r, echo=FALSE}
 kable(top_n(r_uid_count, 25)) %>%   kable_styling(bootstrap_options = "striped", full_width = F, position = "center")
+to_show <- top_n(r_uid_count,25)%>% select(-n) %>% distinct() 
+ggnet2(Qall, label = to_show$r_uid, label.size = 4, label.color = "darkblue", node.size = 0.25, edge.size = 0.25, edge.color = "grey")
 ```
 
-The users `r All_qtrs` appear among them `r sum(All_qtrs %in% r_uid_count$r_uid[1:10])` times as recipients.
+The users 1453 and 1876 are represented here, as well.
 
-Only one user of the three most frequent email users was among the users in the top-pairs list, the top senders list and the top receivers list. Another was in the top senders list and the top receivers list. The third was missing from all three lists. 
+Only one user of the three most frequent email users was among the users in the top-pairs list, the top senders list and the top receivers list.
 
 ### Graph measures of user connectedness
 
 #### Degree
 
-`Degree` is one of many metrics that measure the relative position in a graph of a vertex, or user. It is simply the number of connections with different users. The top 25 users ranked by that criterion are:
+`Degree` is one of many metrics that measure the relative position in a graph of a vertex, or user. It is simply the number of connections with different users. The top 10 users ranked by that criterion are:
 
 ```{r, echo=FALSE}
-kable(deg(Qall,25)) %>%   kable_styling(bootstrap_options = "striped", full_width = F, position = "center")
+kable(deg(Qall,10)) %>%   kable_styling(bootstrap_options = "striped", full_width = F, position = "center")
+ggnet2(Qall, label = deg(Qall,10)$userid, label.size = 4, label.color = "darkblue", node.size = 0.25, edge.size = 0.25, edge.color = "grey")
 ```
+
+This metric introduces a new group of users unseen in the naive analysis.
+
 ### Closeness
 
 `Closeness` measures the geodesic bewtween a vertex and all other vertices in a graph.
 
 ```{r, echo=FALSE}
 kable(clos(Qall,25)) %>%   kable_styling(bootstrap_options = "striped", full_width = F, position = "center")
+ggnet2(Qall, label = clos(Qall,10)$userid, label.size = 4, label.color = "darkblue", node.size = 0.25, edge.size = 0.25, edge.color = "grey")
 ```
 
 ### Betweeness
@@ -810,9 +858,13 @@ kable(clos(Qall,25)) %>%   kable_styling(bootstrap_options = "striped", full_wid
 
 ```{r, echo=FALSE}
 kable(betw(Qall,25)) %>%   kable_styling(bootstrap_options = "striped", full_width = F, position = "center")
+ggnet2(Qall, label = betw(Qall,10)$userid, label.size = 4, label.color = "darkblue", node.size = 0.25, edge.size = 0.25, edge.color = "grey")
 ```
 
-ipsum didat
+### Usefullness
+
+Which of these measures to privilege is not clear. They each present different perspectives of the relative importance of the user in the network, based on different criteria, but none fails to identify any collection of users to which attention should be directed.
+
 [staff report]:http://elibrary.ferc.gov/idmws/common/opennat.asp?fileID=9548231
 
 [Wolak report]:http://www.caiso.com/Documents/ReportonRedesign-CaliforniaReal-TimeEnergyandAncillaryServicesMarkets.pdf
