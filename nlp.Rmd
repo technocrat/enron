@@ -5,22 +5,25 @@ output: pdf_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-library(dplyr)
-library(ggplot2)
-library(magrittr)
-library(pander)
-library(scales)
-library(stringr)
-library(tibble)
-library(tidyr)
-library(tidytext)
+
+suppressPackageStartupMessages(library(dplyr))
+suppressPackageStartupMessages(library(ggplot2))
+suppressPackageStartupMessages(library(magrittr))
+suppressPackageStartupMessages(library(pander))
+suppressPackageStartupMessages(library(scales))
+suppressPackageStartupMessages(library(stringr))
+suppressPackageStartupMessages(library(tibble))
+suppressPackageStartupMessages(library(tidyr))
+suppressPackageStartupMessages(library(tidytext))
+
 
 '%out%' <- Negate ('%in%')
-load("n_enron.Rda")
+# load("n_enron.Rda")
 data(stop_words)
 
 exempt_stopwords <- enframe(c("against", "all", "allow", "allows", "always", "awfully", "beforehand", "behind", "below", "better", "big", "can't", "cannot", "cant", "case", "cases", "downwards", "except", "gives", "good", "great", "highest", "hopefully", "immediate", "might", "necessary", "not", "nowhere", "numbers", "otherwise", "point", "serious", "seriously", "state", "states", "unfortunately", "value", "worked", "working", "zero"))
 colnames(exempt_stopwords) <- c("line", "word")
+
 stop_words <- anti_join(stop_words, exempt_stopwords)
 add_stops <- c("ect", "hou", "enronxgate")
 lexicon <- c("user", "user", "user")
