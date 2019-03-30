@@ -117,38 +117,63 @@ ggplot(data = x, aes(x = date, y = log10(n)))      				      +
    	theme(axis.text.x = element_text(angle = 30, hjust = 1))
 }
 
-# find the users with the top n betweenness scores 
-# in a graph object	x
-betw <-  function(x,n) {
-	enframe(betweenness(x))        						%>% 
+# # find the users with the top n betweenness scores 
+# # in a graph object	x
+# betw <-  function(x,n) {
+# 	enframe(betweenness(x, rescale = TRUE)) %>% 
+# 	mutate(userid = userid$userid[name]) 	%>%
+# 	select(userid, value)			        		%>%
+# 	rename(betweenness = value) 				  %>%
+# 	arrange(desc(betweenness))					  %>%
+# 	top_n(n)
+# }
+
+# # find the users with the top n closeness scores 
+# # in a graph object	x
+# clos <-  function(x,n) {
+# 	enframe(closeness(x, cmode="suminvdir", rescale = TRUE)) %>% 
+# 	mutate(userid = userid$userid[name]) 	%>%
+# 	select(userid, value)			        		%>%
+# 	rename(closeness = value) 				    %>%
+# 	arrange(desc(closeness))					    %>%
+# 	top_n(n)
+# }
+
+
+# find the users with the top n loadcent scores 
+# # in a graph object	x
+ldctr <-  function(x,n) {
+	enframe(loadcent(x, rescale = TRUE))  %>%
 	mutate(userid = userid$userid[name]) 	%>%
 	select(userid, value)			        		%>%
-	rename(betweenness = value) 				  %>%
-	arrange(desc(betweenness))					  %>%
+	rename(loadcent = value)   				    %>%
+	arrange(desc(loadcent)) 					    %>%
 	top_n(n)
 }
-
-# find the users with the top n closeness scores 
-# in a graph object	x
-clos <-  function(x,n) {
-	enframe(closeness(x, cmode="suminvdir")) %>% 
-	mutate(userid = userid$userid[name]) 	%>%
-	select(userid, value)			        		%>%
-	rename(closeness = value) 				    %>%
-	arrange(desc(closeness))					    %>%
-	top_n(n)
-}
-
 # find the users with the top n degree scores 
 # in a graph object	x
 deg <-  function(x,n) {
-	enframe(degree(x))        						%>% 
+	enframe(degree(x, rescale = TRUE))      %>% 
 	mutate(userid = userid$userid[name]) 	%>%
 	select(userid, value)			        		%>%
 	rename(degree = value)				      	%>%
 	arrange(desc(degree))					        %>%
 	top_n(n)
 }
+
+
+# collect scaled measures of degrees of centrality
+
+prominence <- tibble(
+  deg = degree(Qall, rescale = TRUE),
+  ldc = loadcent(Qall, rescale = TRUE),
+  evc = evcent(Qall, rescale = TRUE, use.eigen = TRUE)
+
+)
+vertices <- enframe(cohort(Qall)) %>% rename(userid = value) %>% select(-name)
+prominence <- bind_cols(vertices, prominence)
+prominence <- prominence %>% arrange(desc(deg, ldc, evc))
+
 
 # Get x-y coordinates for selective plotting of userid
 # x is a network object
@@ -560,7 +585,7 @@ Much of the focus was directed to keyword searches, sometimes called the *smokin
 
 I obtained a copy of the [2009 version] of the corpus. It contains copies of emails of a private nature that involve three users have who since requested to be [redacted]. I have removed those 27 emails.^[Most of my work on data wrangling and preliminary took place in 2010 in Python, relying heavily on the NLTK and networkx packages.]
 
-The following were extracted from my 2010 analysis for this paper:
+The following were extracted from the SQL database I prepared for my 2010 analysis on the graph portion of this paper.
 
 \begin{verbatim}
 
@@ -586,7 +611,7 @@ The principal fields used in this paper are:
 * date
 * subject
 * recipient
-* new content (*lastword*)
+* lastword (content in the email that does not occur in its related thread, if any)
 
 ### Conversion
 
@@ -622,6 +647,18 @@ A second filter for internal email was used to eliminate broadcast messages and 
 
 The third filter limited the dataset to emails sent before Enron's December 2, 2001 bankruptcy. This filter reduced the email count to approximately 13,500, about 2.7% of the original total. A few emails dated "1979-12-31" were reviewed and deleted. The resulting dataset was named `g_enron` for its initial purpose, network graph analysis.
 
+## Social network analysis
+
+### The nature of social networks
+
+Following the reduction of the corpus, the remaining senders and receivers were natural persons who engaged in mutual correspondence. These constitute `nodes` or `vertices` and their emails `edges`^[Or `arcs`, when directionality is considered]. Draw theee points and connect them, and you have created three nodes and three edges, a triagle, which is termed a `graph` object. A graph object encapsulates many useful features aside from who knows whom^[Such as the parlor game [six degrees of Kevin Bacon]] including measures of density, centrality, connectedness, separation, clustering and other indicia of how well or poorly embedded in an organization any individual may stand.
+
+A graph object has the added advantage that its `edges` (connectors) can be loaded with an arbitrary number of attributes, such as date and semantic analysis content. For example a graph may be partitioned by topics -- some correspondents may have a purely non-business social relationship, others may be concerned solely with facilities maintenance, and yet others may have a strong association with trading commodities.
+
+Graphs are potentially computationally intensive, which motivated the reduction of the selection of emails and users to approximately 1.4% of the emails available for examination.^[Together with the observation of the many sources of noise arising from the high volume of emails not relevant to any of the inquiries being made, including, for example, inspirational quotes of the day from an external site.]
+
+Graphs are not only a processing unit, they constitute the domain of their own branch of mathematics.^[*See, e.g.*, the brief tutorial by [Keijo Ruohonen]].
+
 ### Augmentation and transformation
 
 Each unique Enron address in the reduced dataset was assigned a userid. The primary purpose was to facilitate social network analysis with node identifiers of uniform length; the second, to reduce analyst bias arising from gender stereotyping, frequency of exposure and similar subjective pattern seeking behaviors. 
@@ -646,7 +683,7 @@ The core Enron social network is defined to consist of those emails in the corpu
 
 All emails from January 1, 2000 to December 2, 2001 the date of the [bankruptcy] were collected. A handful of messages prior to January 1, 2000 were excluded due to their small quarterly count.
 
-### Participants
+### Users
 
 A total of `r comma2(nrow(userid))` unique users are represented. However, all but `r census(Qall)` users are non-reciprocating or isolated. To identify those, the sender and recipient userids were extracted and converted to a graph object, which will be referred to as the **core Enron corpus.** Following are the characteristics of the 23-month series. The attributes are 
 
@@ -662,8 +699,7 @@ A total of `r comma2(nrow(userid))` unique users are represented. However, all b
 Qall
 ```
 
-Graph objects shown here represent users (vertices) by dots and emails (edges) by lines. The length of the line is not a measure of distance. The visualization algorithm arranges vertices and edges to promote recognition of connections only. It is also important to note that the visual representation of graph objects is not stable. The identical graph and identical algorithm will produce visual representations that portray the same graph object in different orientatinos. The relationships are preserved, but the geometery is not.
-
+Graph objects shown here represent users (vertices) by dots and emails (edges) by lines. The length of the line is not a measure of distance. The visualization algorithm arranges vertices and edges to promote recognition of connections only. It is also important to note that the visual representation of graph objects is not stable. The identical graph and identical algorithm will produce visual representations that portray the same graph object in different orientatinos. The relationships are preserved, but the Cartesian geometery is not.
 
 ### Time series of core Enron corpus January 2000-December 2001
 
@@ -776,6 +812,8 @@ plot_graph(Q401, "October-November 2000")
 plot_ts(Q401_ts, "October-November 2001")
 ```
 
+## User prominence
+
 ### Naive measures of user prominence
 
 As illustrated by the quarterly tables and plot above, the number of users participating in the social network varied over time. However, only users `r All_qtrs` have activity in all seven quarters. In what other ways are these users distinguished?
@@ -827,6 +865,8 @@ Only user 1876 of the three most frequent email users was among the users in the
 
 ### Graph measures of user connectedness
 
+All of the functions described in this section, `degree`, `betweenness` and `stresscent` have been run with the `rescale = TRUE` option to formalize them.
+
 #### Degree
 
 `Degree` is one of many metrics that measure the relative position in a graph of a vertex, or user. It is simply the number of connections with different users. The top 10 users ranked by that criterion are:
@@ -834,18 +874,10 @@ Only user 1876 of the three most frequent email users was among the users in the
 ```{r, echo=FALSE}
 kable(deg(Qall,10)) %>%   kable_styling(bootstrap_options = "striped", full_width = F, position = "center")
 ggnet2(Qall, label = deg(Qall,10)$userid, label.size = 4, label.color = "darkblue", node.size = 0.25, edge.size = 0.25, edge.color = "grey")
+top_deg <- deg(Qall,10)$userid
 ```
 
 This metric introduces a new group of users unseen in the naive analysis.
-
-### Closeness
-
-`Closeness` measures the geodesic between a vertex and all other vertices in a graph.
-
-```{r, echo=FALSE}
-kable(clos(Qall,10)) %>%   kable_styling(bootstrap_options = "striped", full_width = F, position = "center")
-ggnet2(Qall, label = clos(Qall,10)$userid, label.size = 4, label.color = "darkblue", node.size = 0.25, edge.size = 0.25, edge.color = "grey")
-```
 
 ### Betweeness
 
@@ -855,11 +887,35 @@ ggnet2(Qall, label = clos(Qall,10)$userid, label.size = 4, label.color = "darkbl
 ```{r, echo=FALSE}
 kable(betw(Qall,10)) %>%   kable_styling(bootstrap_options = "striped", full_width = F, position = "center")
 ggnet2(Qall, label = betw(Qall,10)$userid, label.size = 4, label.color = "darkblue", node.size = 0.25, edge.size = 0.25, edge.color = "grey")
+top_betw <- betw(Qall,10)$userid
 ```
 
-### Usefullness
+### Stress centrality
 
-Which of these measures to privilege is not clear. They each present different perspectives of the relative importance of userd in the network, based on different criteria, but none fails to identify any collection of users to which attention should be directed.
+This measures the extent to which vertices lie on high numbers of the shortest paths between other vertices.
+
+```{r}
+kable(str_cent(Qall,10)) %>%   kable_styling(bootstrap_options = "striped", full_width = F, position = "center")
+ggnet2(Qall, label = str_cent(Qall,10)$userid, label.size = 4, label.color = "darkblue", node.size = 0.25, edge.size = 0.25, edge.color = "grey")
+top_stress <- str_cent(Qall,10)$userid
+```
+
+
+
+
+
+### Usefulness and combination measures
+
+Which of these measures to privilege is not clear. They each present different perspectives of the relative importance of userd in the network, based on different criteria, but none presents an obvious candidate by itself. The union of users identified by these methods is
+
+```{r, echo = FALSE}
+central_users <- (union(union(top_deg,top_betw),top_stress))
+kable(central_users) %>%  kable_styling(bootstrap_options = "striped", full_width = F, position = "center")
+ggnet2(Qall, label = central_users, label.size = 4, label.color = "darkblue", node.size = 0.25, edge.size = 0.25, edge.color = "grey")
+```
+which indicates some overlap, and user 1846, the star of the naive top-10 lists failed to make any of the formal top-10 lists.
+
+
 
 ### Latent network analysis
 
@@ -881,9 +937,14 @@ The arguments to `ergmm` specify a negative Euclidian distance in 2-space for a 
 #con("https://s3-us-west-2.amazon.aws/dslabs-nostromo/Qall.fit.Rda")
 #load(con)
 #close(con)
+load("Qall.fit.Rda")
 ```
 
-###![Trace diagnostic of .fit](Qall.fit_trace.png)
+```{r}
+# ![Trace diagnostic of .fit](Qall.fit_trace.png)
+
+```
+
 
 
 #### Model Diagnostics
@@ -967,7 +1028,7 @@ Through a combination of analytic judgment and machine learning a three-cluster 
 
 [2009 version]:https://www.cs.cmu.edu/~./enron/
 
-[accessible]:https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2831261/
+[accessible]:https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2831261
 
 [Advisory Committee]:https://www.uscourts.gov/rules-policies/archives/committee-reports/advisory-committee-rules-civil-procedure-may-2014
 
