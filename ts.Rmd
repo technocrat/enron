@@ -10,6 +10,7 @@ urlcolor: blue
 
 # silently load libraries
 
+suppressPackageStartupMessages(library(corrplot))
 suppressPackageStartupMessages(library(coda))
 suppressPackageStartupMessages(library(ggnetwork))
 suppressPackageStartupMessages(library(here))
@@ -88,7 +89,7 @@ plot_graph <- function(x,y) {
 ggplot(x, aes(x, y, xend = xend, yend = yend)) +
 geom_edges(size = 0.25, color = "gray")               +
 geom_nodes(size = 0.75, color = "steelblue")          +    
-  labs(title="Graph of core Enron corpus",
+  labs(title="Graph of reduced Enron corpus",
        subtitle= y,		  
        caption="Source: Richard Careaga")			  + 
 theme_ipsum_rc()									  +
@@ -111,36 +112,25 @@ ggplot(data = x, aes(x = date, y = log10(n)))      				      +
   xlab("Month")                                                 +
   ylab("Number (log10) of private messages")                    +
   scale_x_date(date_breaks = "1 month", date_labels = "%y-%m")  +
-  labs(title="Time series chart of core Enron corpus",
+  labs(title="Time series chart of reduced Enron corpus",
    	subtitle= y,		  
    	caption="Source: Richard Careaga")			  				+ 
    	theme(axis.text.x = element_text(angle = 30, hjust = 1))
 }
 
-# # find the users with the top n betweenness scores 
+
+# find the users with the top n evcent reduced 
 # # in a graph object	x
-# betw <-  function(x,n) {
-# 	enframe(betweenness(x, rescale = TRUE)) %>% 
-# 	mutate(userid = userid$userid[name]) 	%>%
-# 	select(userid, value)			        		%>%
-# 	rename(betweenness = value) 				  %>%
-# 	arrange(desc(betweenness))					  %>%
-# 	top_n(n)
-# }
+evctr <-  function(x,n) {
+	enframe(evcent(x, use.eigen = TRUE))  %>%
+	mutate(userid = userid$userid[name]) 	%>%
+	select(userid, value)			        		%>%
+	rename(evcent = value)     				    %>%
+	arrange(desc(evcent)) 	  				    %>%
+	top_n(n)
+}
 
-# # find the users with the top n closeness scores 
-# # in a graph object	x
-# clos <-  function(x,n) {
-# 	enframe(closeness(x, cmode="suminvdir", rescale = TRUE)) %>% 
-# 	mutate(userid = userid$userid[name]) 	%>%
-# 	select(userid, value)			        		%>%
-# 	rename(closeness = value) 				    %>%
-# 	arrange(desc(closeness))					    %>%
-# 	top_n(n)
-# }
-
-
-# find the users with the top n loadcent scores 
+# find the users with the top n loadcent reduced 
 # # in a graph object	x
 ldctr <-  function(x,n) {
 	enframe(loadcent(x, rescale = TRUE))  %>%
@@ -150,7 +140,8 @@ ldctr <-  function(x,n) {
 	arrange(desc(loadcent)) 					    %>%
 	top_n(n)
 }
-# find the users with the top n degree scores 
+
+# find the users with the top n degree reduced
 # in a graph object	x
 deg <-  function(x,n) {
 	enframe(degree(x, rescale = TRUE))      %>% 
@@ -160,19 +151,6 @@ deg <-  function(x,n) {
 	arrange(desc(degree))					        %>%
 	top_n(n)
 }
-
-
-# collect scaled measures of degrees of centrality
-
-prominence <- tibble(
-  deg = degree(Qall, rescale = TRUE),
-  ldc = loadcent(Qall, rescale = TRUE),
-  evc = evcent(Qall, rescale = TRUE, use.eigen = TRUE)
-
-)
-vertices <- enframe(cohort(Qall)) %>% rename(userid = value) %>% select(-name)
-prominence <- bind_cols(vertices, prominence)
-prominence <- prominence %>% arrange(desc(deg, ldc, evc))
 
 
 # Get x-y coordinates for selective plotting of userid
@@ -677,7 +655,7 @@ plot_graph(Qall, "January 2000-December 2001")
 
 ## The network composition
 
-The core Enron social network is defined to consist of those emails in the corpus consisting of one enron.com sender to one Enron.com recipient (excluding apparently automated accounts) if the recipient either replies to the sender or initiates a contact with the sender.
+The reduced Enron social network is defined to consist of those emails in the corpus consisting of one enron.com sender to one Enron.com recipient (excluding apparently automated accounts) if the recipient either replies to the sender or initiates a contact with the sender.
 
 ### Time frame
 
@@ -685,7 +663,7 @@ All emails from January 1, 2000 to December 2, 2001 the date of the [bankruptcy]
 
 ### Users
 
-A total of `r comma2(nrow(userid))` unique users are represented. However, all but `r census(Qall)` users are non-reciprocating or isolated. To identify those, the sender and recipient userids were extracted and converted to a graph object, which will be referred to as the **core Enron corpus.** Following are the characteristics of the 23-month series. The attributes are 
+A total of `r comma2(nrow(userid))` unique users are represented. However, all but `r census(Qall)` users are non-reciprocating or isolated. To identify those, the sender and recipient userids were extracted and converted to a graph object, which will be referred to as the **reduced Enron corpus.** Following are the characteristics of the 23-month series. The attributes are 
 
 * vertices: users
 * directed: from-to and to-from distinguished
@@ -701,7 +679,7 @@ Qall
 
 Graph objects shown here represent users (vertices) by dots and emails (edges) by lines. The length of the line is not a measure of distance. The visualization algorithm arranges vertices and edges to promote recognition of connections only. It is also important to note that the visual representation of graph objects is not stable. The identical graph and identical algorithm will produce visual representations that portray the same graph object in different orientatinos. The relationships are preserved, but the Cartesian geometery is not.
 
-### Time series of core Enron corpus January 2000-December 2001
+### Time series of reduced Enron corpus January 2000-December 2001
 
 One outlier and several groups of outliers are apparent, mid-May 2001 and the weeks leading up to the [bankruptcy].
 
@@ -721,7 +699,7 @@ send_p
 recd_p
 ```
 
-### Quarterly breakdown of core Enron corpus
+### Quarterly breakdown of reduced Enron corpus
 
 #### First quarter 2000
 
@@ -865,7 +843,7 @@ Only user 1876 of the three most frequent email users was among the users in the
 
 ### Graph measures of user connectedness
 
-All of the functions described in this section, `degree`, `betweenness` and `stresscent` have been run with the `rescale = TRUE` option to formalize them.
+All of the functions described in this section, `degree`, `loadcent` and `evcent` have been run with the `rescale = TRUE` option to normalize them.
 
 #### Degree
 
@@ -879,42 +857,83 @@ top_deg <- deg(Qall,10)$userid
 
 This metric introduces a new group of users unseen in the naive analysis.
 
-### Betweeness
+### Load centrality
 
-`Betweenness` is a measure of the extent to which graph paths use a vertex to connect other vertices.
+`Load centrality` is a measure of the extent to which graph paths using a vertex to connect other vertices are able to connect through the least congested paths.
 
 
 ```{r, echo=FALSE}
-kable(betw(Qall,10)) %>%   kable_styling(bootstrap_options = "striped", full_width = F, position = "center")
-ggnet2(Qall, label = betw(Qall,10)$userid, label.size = 4, label.color = "darkblue", node.size = 0.25, edge.size = 0.25, edge.color = "grey")
-top_betw <- betw(Qall,10)$userid
+kable(ldctr(Qall,10)) %>%   kable_styling(bootstrap_options = "striped", full_width = F, position = "center")
+ggnet2(Qall, label = ldctr(Qall,10)$userid, label.size = 4, label.color = "darkblue", node.size = 0.25, edge.size = 0.25, edge.color = "grey")
+top_ldctr <- ldctr(Qall,10)$userid
 ```
 
-### Stress centrality
+### Eigenvector centrality
 
-This measures the extent to which vertices lie on high numbers of the shortest paths between other vertices.
+This measures the centrality of a vertex as a function of the centrality of the vertices to which it is connected, taking into account, in turn, the centrality of *those vertices.*
 
 ```{r}
-kable(str_cent(Qall,10)) %>%   kable_styling(bootstrap_options = "striped", full_width = F, position = "center")
-ggnet2(Qall, label = str_cent(Qall,10)$userid, label.size = 4, label.color = "darkblue", node.size = 0.25, edge.size = 0.25, edge.color = "grey")
-top_stress <- str_cent(Qall,10)$userid
+kable(evctr(Qall, 10)) %>%
+kable_styling(bootstrap_options = "striped", full_width = F, position = "center")
+ggnet2(Qall, label = evctr(Qall,10)$userid, label.size = 4, label.color = "darkblue", node.size = 0.25, edge.size = 0.25, edge.color = "grey")
+top_evctr <- evctr(Qall,10)$userid
+```
+### Usefulness of combination measures
+
+Which of these measures to privilege is not clear. They each present different perspectives of the relative importance of each userd in the network, based on different criteria, but none presents an obvious candidate by itself. The are, however, moderately well correlated at high degrees of significance.
+
+```{r, echo=FALSE}
+
+# collect scaled measures of degrees of centrality
+
+prominence <- tibble(
+  deg = degree(Qall, rescale = TRUE),
+  ldc = loadcent(Qall, rescale = TRUE),
+  evc = evcent(Qall, rescale = TRUE, use.eigen = TRUE))
+
+vertices <- enframe(cohort(Qall)) %>% rename(userid = value) %>% select(-name)
+prominence <- bind_cols(vertices, prominence)
+
+pander::pander(cor.test(prominence$deg,prominence$ldc)) #) %>%)
+#kable_styling(bootstrap_options = "striped", full_width = F, position = "center")
+pander::pander(cor.test(prominence$deg,prominence$evc))# %>%
+#kable_styling(bootstrap_options = "striped", full_width = F, position = "center")
+pander::pander(cor.test(prominence$ldc,prominence$evc)) #%>%
+#kable_styling(bootstrap_options = "striped", full_width = F, position = "center")
 ```
 
-
-
-
-
-### Usefulness and combination measures
-
-Which of these measures to privilege is not clear. They each present different perspectives of the relative importance of userd in the network, based on different criteria, but none presents an obvious candidate by itself. The union of users identified by these methods is
+The union of users identified by these methods is
 
 ```{r, echo = FALSE}
-central_users <- (union(union(top_deg,top_betw),top_stress))
+central_users <- (union(union(top_deg,top_ldctr),top_evctr))
 kable(central_users) %>%  kable_styling(bootstrap_options = "striped", full_width = F, position = "center")
 ggnet2(Qall, label = central_users, label.size = 4, label.color = "darkblue", node.size = 0.25, edge.size = 0.25, edge.color = "grey")
 ```
+
 which indicates some overlap, and user 1846, the star of the naive top-10 lists failed to make any of the formal top-10 lists.
 
+One way to evaluate these measures of vertex centrality is to consider the same measures *applied to the graph as a whole* through `sna::centralization`.
+
+The degree centralization of the reduce Enron graph is `r centralization(Qall, degree)`; its load centrality centralization is `r centralization(Qall, loadcent)` its eigenvector centralization is `r centralization(Qall, evcent, use.eigen = TRUE)`.
+
+### Further reduction
+
+Following inspection, the Qall 533 vertex graph was reduced by  
+170 vertices by selecting the rows at which the cumulative density of load centrality and Eigenvector centrality are both above densities of 0.5. The degree centrality is highly concentrated within the first 35 vetices.
+
+```{r, echo=FALSE}
+# calculate cumulative sums of normalized centrality measures
+
+ctr_scores <-prominence         %>%
+  rownames_to_column(var = "id")%>% 
+  arrange(desc(deg, ldc, evc))            %>%
+  mutate(deg_sum = cumsum(deg)) %>%
+  mutate(ldc_sum = cumsum(ldc)) %>%
+  mutate(evc_sum = cumsum(evc)) %>%
+  filter(id > 170)              %>%
+  select(userid)
+kable(ctr_) %>%  kable_styling(bootstrap_options = "striped", full_width = F, position = "center")
+```
 
 
 ### Latent network analysis
@@ -947,7 +966,7 @@ load("Qall.fit.Rda")
 
 
 
-#### Model Diagnostics
+#### Model diagnostics
 
 Graphs do not uniformly converge under the `ergmm` function call. To test this, a diagnostic is available to detect failure of the Markov chain Monte Carlo simulation to converge and to detect autocorrelation effects. One section provides an initial and lag 10 covariance matrix of the sampling. 
 
@@ -1012,7 +1031,7 @@ Using the cluster assignment to sender and recipient userids confirms the graph:
 
 Members of cluster 1 correspond predominantly to other members of cluster 1 and to a substantial number of cluster 2 members. There is only one message from a cluster 1 member to a cluster 3 member. Cluster 2 members have an even division of emails sent to or received from cluster 1 and a smaller cluster 2 to cluster 2 correspondence. Correspondence between clusters 2 and 3, in either direction, is much less.
 
-#### Application of the deconstruction of the Enron network
+#### Application of the deconstruction of the core Enron network
 
 Through a combination of analytic judgment and machine learning a three-cluster partition of the emails has been created. The obvious question to now be addressed is what those clusters represent in terms of email content. For that the tools of natural language processing will be applied.
 
