@@ -10,7 +10,6 @@ urlcolor: blue
 
 # silently load libraries
 
-suppressPackageStartupMessages(library(corrplot))
 suppressPackageStartupMessages(library(coda))
 suppressPackageStartupMessages(library(ggnetwork))
 suppressPackageStartupMessages(library(here))
@@ -144,7 +143,7 @@ ldctr <-  function(x,n) {
 # find the users with the top n degree reduced
 # in a graph object	x
 deg <-  function(x,n) {
-	enframe(degree(x, rescale = TRUE))      %>% 
+	enframe(degree(x, rescale = TRUE))    %>% 
 	mutate(userid = userid$userid[name]) 	%>%
 	select(userid, value)			        		%>%
 	rename(degree = value)				      	%>%
@@ -290,9 +289,11 @@ Qall_sparse <- Qall_raw 							%>%
 
 # network object eliminating isolates and non-reciprocal users
 
-Qall <- Qall_sparse 									%>% 
-	nets(.) 											      %>% 
-	neti(.)
+Qall <- Qall_raw        %>% 
+        select(-date)   %>%
+        netr(.)         %>% 
+        nets(.)         %>% 
+        neti(.)
 
 # Get x-y coordinates for selective plotting of userid
 # x is a network object
@@ -338,8 +339,8 @@ Q200_sparse <- Q200_raw 							%>%
 	netr(.) 
 
 Q200 <- Q200_sparse 									%>% 
-	nets(.) 											      %>% 
-	neti(.)
+	neti(.) 											      %>% 
+	nets(.)
 
 Q200_ts <- Q_ts(Q200_raw)
 
@@ -352,8 +353,8 @@ Q300_sparse <- Q300_raw 								%>%
 	netr(.)
 
 Q300 <- Q300_sparse 									  %>% 
-	nets(.) 											        %>%
-	neti(.)
+	neti(.) 											        %>%
+	nets(.)
 
 Q300_ts <- Q_ts(Q300_raw)
 
@@ -366,8 +367,8 @@ Q400_sparse <- Q400_raw 								%>%
 	netr(.)
 
 Q400 <- Q400_sparse										  %>% 
-	nets(.)												        %>% 
-	neti(.)
+	neti(.)												        %>% 
+	nets(.)
 
 Q400_ts <- Q_ts(Q400_raw)
 
@@ -380,8 +381,8 @@ Q101_sparse <- Q101_raw 								%>%
 	netr(.) 
 
 Q101 <- Q101_sparse										  %>%
-	nets(.) 											        %>%
-	neti(.)
+	neti(.) 											        %>%
+	nets(.)
 
 Q101_ts <- Q_ts(Q101_raw)
 
@@ -394,8 +395,8 @@ Q201_sparse <- Q201_raw 								%>%
 	netr(.)
 
 Q201 <- Q201_sparse 									  %>% 
-	nets(.) 											        %>%
-	neti(.)
+	neti(.) 											        %>%
+	nets(.)
 
 Q201_ts <- Q_ts(Q201_raw)
 
@@ -408,8 +409,8 @@ Q301_sparse <- Q301_raw 								%>%
 	netr(.)
 
 Q301 <- Q301_sparse 										%>% 
-	nets(.) 											        %>%
-	neti(.)
+	neti(.) 											        %>%
+	nets(.)
 
 Q301_ts <- Q_ts(Q301_raw)
 
@@ -422,8 +423,8 @@ Q401_sparse <- Q401_raw 								%>%
 	netr(.) 
 
 Q401 <- Q401_sparse 									  %>%
-	nets(.) 											        %>% 
-	neti(.)
+	neti(.) 											        %>% 
+	nets(.)
 
 Q401_ts <- Q_ts(Q401_raw)
 
@@ -498,6 +499,8 @@ recd_p <- ggplot(r_uid_count, aes(log10(n)))		+
         subtitle = "January 2000-November 2001",		  
         caption = "Source: Richard Careaga")		#+ 
     #theme_ipsum_rc()
+
+
 ```
 
 
@@ -647,7 +650,7 @@ To achieve a computationally practicable dataset for initial social network anal
 plot_graph(Qall_sparse, "January 2000-December 2001")
 ```
 
-The resulting graph had low density, and the the dataset was further trimmed by restricting it to reciprocal correspondents, each of whom sent an email to the other, either as a reply or an original message, excluding emails by a user to herself.
+The resulting graph had low density, and the the dataset was further trimmed by restricting it to non-isolate, reciprocal correspondents, each of whom sent an email to the other, either as a reply or an original message, excluding emails by a user to herself.
 
 ```{r, echo=FALSE, results="as-is", comment=NA, message=FALSE,  error = FALSE,  warning=FALSE}
 plot_graph(Qall, "January 2000-December 2001")
@@ -786,7 +789,7 @@ Q401
 plot_graph(Q401, "October-November 2000")
 ```
 
-```{r, echo = FALSE, warning=FALSE, message=FALSE}
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
 plot_ts(Q401_ts, "October-November 2001")
 ```
 
@@ -845,14 +848,27 @@ Only user 1876 of the three most frequent email users was among the users in the
 
 All of the functions described in this section, `degree`, `loadcent` and `evcent` have been run with the `rescale = TRUE` option to normalize them.
 
+```{r, echo=FALSE}
+# collect scaled measures of degrees of centrality
+
+prominence <- data.frame(
+  deg = degree(Qall, rescale = TRUE),
+  ldc = loadcent(Qall, rescale = TRUE),
+  evc = evcent(Qall, rescale = TRUE, use.eigen = TRUE))
+row.names(prominence) <- Qall %v% "vertex.names"
+prominence <- rownames_to_column(prominence, var = "userid")
+prominence <- as_tibble(prominence)
+```
+
+
 #### Degree
 
 `Degree` is one of many metrics that measure the relative position in a graph of a vertex, or user. It is simply the number of connections with different users. The top 10 users ranked by that criterion are:
 
 ```{r, echo=FALSE}
-kable(deg(Qall,10)) %>%   kable_styling(bootstrap_options = "striped", full_width = F, position = "center")
+kable(prominence %>% select(userid, deg) %>% arrange(desc(deg))) %>% kable_styling(bootstrap_options = "striped", full_width = F, position = "center")
 ggnet2(Qall, label = deg(Qall,10)$userid, label.size = 4, label.color = "darkblue", node.size = 0.25, edge.size = 0.25, edge.color = "grey")
-top_deg <- deg(Qall,10)$userid
+top_deg <- prominence %>% select(userid, deg) %>% arrange(desc(deg)) %>% select(userid)
 ```
 
 This metric introduces a new group of users unseen in the naive analysis.
@@ -863,36 +879,28 @@ This metric introduces a new group of users unseen in the naive analysis.
 
 
 ```{r, echo=FALSE}
-kable(ldctr(Qall,10)) %>%   kable_styling(bootstrap_options = "striped", full_width = F, position = "center")
+kable(loadcent(Qall,rescale = TRUE) %>% sort(decreasing = TRUE) %>% head(10)) %>%   kable_styling(bootstrap_options = "striped", full_width = F, position = "center")
 ggnet2(Qall, label = ldctr(Qall,10)$userid, label.size = 4, label.color = "darkblue", node.size = 0.25, edge.size = 0.25, edge.color = "grey")
-top_ldctr <- ldctr(Qall,10)$userid
+top_ldc <- prominence %>% select(userid, ldc) %>% arrange(desc(ldc)) %>% select(userid)
 ```
 
 ### Eigenvector centrality
 
-This measures the centrality of a vertex as a function of the centrality of the vertices to which it is connected, taking into account, in turn, the centrality of *those vertices.*
+This measures the centrality of a vertex as a function of the centrality of the vertices to which it is connected, taking into account, in turn, the centrality of *those vertices.* The top results shown on this normalized scale; however the sum of these values for graph as a whole is `r  sum(evcent(Qall, use.eigen = TRUE))` with a mean of `r mean(evcent(Qall, use.eigen = TRUE))`.
 
-```{r}
+
+```{r, echo=FALSE}
 kable(evctr(Qall, 10)) %>%
 kable_styling(bootstrap_options = "striped", full_width = F, position = "center")
 ggnet2(Qall, label = evctr(Qall,10)$userid, label.size = 4, label.color = "darkblue", node.size = 0.25, edge.size = 0.25, edge.color = "grey")
-top_evctr <- evctr(Qall,10)$userid
+top_evc <- prominence %>% select(userid, evc) %>% arrange(desc(evc)) %>% select(userid)
 ```
+
 ### Usefulness of combination measures
 
 Which of these measures to privilege is not clear. They each present different perspectives of the relative importance of each userd in the network, based on different criteria, but none presents an obvious candidate by itself. The are, however, moderately well correlated at high degrees of significance.
 
 ```{r, echo=FALSE}
-
-# collect scaled measures of degrees of centrality
-
-prominence <- tibble(
-  deg = degree(Qall, rescale = TRUE),
-  ldc = loadcent(Qall, rescale = TRUE),
-  evc = evcent(Qall, rescale = TRUE, use.eigen = TRUE))
-
-vertices <- enframe(cohort(Qall)) %>% rename(userid = value) %>% select(-name)
-prominence <- bind_cols(vertices, prominence)
 
 pander::pander(cor.test(prominence$deg,prominence$ldc)) #) %>%)
 #kable_styling(bootstrap_options = "striped", full_width = F, position = "center")
@@ -904,8 +912,8 @@ pander::pander(cor.test(prominence$ldc,prominence$evc)) #%>%
 
 The union of users identified by these methods is
 
-```{r, echo = FALSE}
-central_users <- (union(union(top_deg,top_ldctr),top_evctr))
+```{r, echo=FALSE}
+central_users <- (union(union(top_deg,top_ldc),top_evc)) %>% sort()
 kable(central_users) %>%  kable_styling(bootstrap_options = "striped", full_width = F, position = "center")
 ggnet2(Qall, label = central_users, label.size = 4, label.color = "darkblue", node.size = 0.25, edge.size = 0.25, edge.color = "grey")
 ```
@@ -918,122 +926,22 @@ The degree centralization of the reduce Enron graph is `r centralization(Qall, d
 
 ### Further reduction
 
-Following inspection, the Qall 533 vertex graph was reduced by  
-170 vertices by selecting the rows at which the cumulative density of load centrality and Eigenvector centrality are both above densities of 0.5. The degree centrality is highly concentrated within the first 35 vetices.
+Following inspection, the Qall 533 vertex graph was reduced by   170 vertices by selecting the rows at which the cumulative density of load centrality and Eigenvector centrality are both above densities of 0.5. The degree centrality is highly concentrated within the first 35 vetices.
 
 ```{r, echo=FALSE}
 # calculate cumulative sums of normalized centrality measures
+deg_s <- prominence %>% select(userid, deg) %>% arrange(desc(deg)) %>% head(160)
+ldc_s <- prominence %>% select(userid, ldc) %>% arrange(desc(ldc)) %>% head(160)
+evc_s <- prominence %>% select(userid, evc) %>% arrange(desc(evc)) %>% head(160)
+deg_u <- deg_s %>% select(userid)
+ldc_u <- ldc_s %>% select(userid)
+evc_u <- evc_s %>% select(userid)
+top_u <- union(union(deg_u,ldc_u),evc_u) %>% sort()
 
-ctr_scores <-prominence         %>%
-  rownames_to_column(var = "id")%>% 
-  arrange(desc(deg, ldc, evc))            %>%
-  mutate(deg_sum = cumsum(deg)) %>%
-  mutate(ldc_sum = cumsum(ldc)) %>%
-  mutate(evc_sum = cumsum(evc)) %>%
-  filter(id > 170)              %>%
-  select(userid)
-kable(ctr_) %>%  kable_styling(bootstrap_options = "striped", full_width = F, position = "center")
+kable(top_u) %>%  kable_styling(bootstrap_options = "striped", full_width = F, position = "center")
 ```
 
 
-### Latent network analysis
-
-To explicate the results, a machine learning tool is indicated.  The [latentnet] package was selected for that task. An [accessible] description of that package, as well as a more [theoretical] paper are available for orientation. 
-
-The package applies exponential random graph modeling to the vertices, edges and optionally their attrtibutes to recursively dervive graph characteristics that are impractical to extract otherwise, due to the interdependence of graph measures. 
-
-#### Model creation
-
-The first step is to fit^[This is a long-running function, which may take 45 minutes or more even with 32GB memory. The chunk that follows loads an Rda object of the model stored in an AWS S3 bucket.] a model to a network object. `Qall` will be used. 
-
-    Qall.fit <- ergmm(Qall ~ euclidean(d=2, G=3), verbose = TRUE)
-
-The arguments to `ergmm` specify a negative Euclidian distance in 2-space for a three cluster grouping. The algorithm performs a Markov chain Monte Carlo simulation, the absolute row/column differences within the adjacency matrix to fit the Minimum Kullback-Liebler divergence statistic to produce model based clustering of the vertices in the graph.
-
-```{r, echo = FALSE}
-# Qall.fit <- ergmm(Qall ~ euclidean(d=2, G=3), verbose = TRUE)
-# save(Qall.fit, file = "Qall.fit.Rda")
-#con("https://s3-us-west-2.amazon.aws/dslabs-nostromo/Qall.fit.Rda")
-#load(con)
-#close(con)
-load("Qall.fit.Rda")
-```
-
-```{r}
-# ![Trace diagnostic of .fit](Qall.fit_trace.png)
-
-```
-
-
-
-#### Model diagnostics
-
-Graphs do not uniformly converge under the `ergmm` function call. To test this, a diagnostic is available to detect failure of the Markov chain Monte Carlo simulation to converge and to detect autocorrelation effects. One section provides an initial and lag 10 covariance matrix of the sampling. 
-
-```{r}
-load("Qall.fit.Rda")
-mcmc.diagnostics(Qall.fit, which.diags = c("cor", "acf", "rafferty"))
-```
-
-#### Goodness of fit
-
-
-```{r}
-Qall.gof <- gof(Qall.fit)
-Qall.gof
-par(mfrow=c(1,3))
-par(oma=c(0.5,2,1,0.5))
-plot(Qall.gof, plotlogodds=TRUE)
-```
-
-#### Visualization of model clusters, position within sample space and density
-
-```{r}
-plot(Qall.fit, pie=TRUE)
-plot(Qall.fit, what="cloud", rand.eff="receiver", Z.ref=Z.ref, Z.K.ref=Z.K.ref)
-plot(Qall.fit, what="density", rand.eff="receiver", Z.ref=Z.ref, Z.K.ref=Z.K.ref)
-```
-
-#### Model Diagnostics
-
-Graphs do not always converge under the `ergmm` function call. To test this, a diagnostic is available to detect failure of the Markov chain Monte Carlo simulation to converge and to detect autocorrelation effects. One section provides an initial and lag 10 covariance matrix of the sampling. 
-
-```{r}
-load("Qall.fit.Rda")
-mcmc.diagnostics(Qall.fit, which.diags = c("cor", "acf", "rafferty"))
-```
-
-#### Goodness of fit
-
-
-```{r}
-Qall.gof <- gof(Qall.fit)
-Qall.gof
-par(mfrow=c(1,3))
-par(oma=c(0.5,2,1,0.5))
-plot(Qall.gof, plotlogodds=TRUE)
-```
-
-#### Visualization of model clusters, position within sample space and density
-
-```{r}
-plot(Qall.fit, pie=TRUE)
-plot(Qall.fit, what="cloud", rand.eff="receiver", Z.ref=Z.ref, Z.K.ref=Z.K.ref)
-plot(Qall.fit, what="density", rand.eff="receiver", Z.ref=Z.ref, Z.K.ref=Z.K.ref)
-```
-
-Using the cluster assignment to sender and recipient userids confirms the graph:
-
-```{r}
-#load("n_enron.Rda")
-#n_enron %>% group_by(f_cluster, t_cluster) %>% count() %>% #arrange(desc(n))
-```
-
-Members of cluster 1 correspond predominantly to other members of cluster 1 and to a substantial number of cluster 2 members. There is only one message from a cluster 1 member to a cluster 3 member. Cluster 2 members have an even division of emails sent to or received from cluster 1 and a smaller cluster 2 to cluster 2 correspondence. Correspondence between clusters 2 and 3, in either direction, is much less.
-
-#### Application of the deconstruction of the core Enron network
-
-Through a combination of analytic judgment and machine learning a three-cluster partition of the emails has been created. The obvious question to now be addressed is what those clusters represent in terms of email content. For that the tools of natural language processing will be applied.
 
 
 
