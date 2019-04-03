@@ -339,8 +339,8 @@ Q200_sparse <- Q200_raw 							%>%
 	netr(.) 
 
 Q200 <- Q200_sparse 									%>% 
-	neti(.) 											      %>% 
-	nets(.)
+	nets(.) 											      %>% 
+	neti(.)
 
 Q200_ts <- Q_ts(Q200_raw)
 
@@ -353,8 +353,8 @@ Q300_sparse <- Q300_raw 								%>%
 	netr(.)
 
 Q300 <- Q300_sparse 									  %>% 
-	neti(.) 											        %>%
-	nets(.)
+	nets(.)											        %>%
+	neti(.)
 
 Q300_ts <- Q_ts(Q300_raw)
 
@@ -367,8 +367,8 @@ Q400_sparse <- Q400_raw 								%>%
 	netr(.)
 
 Q400 <- Q400_sparse										  %>% 
-	neti(.)												        %>% 
-	nets(.)
+	nets(.)												        %>% 
+	neti(.)
 
 Q400_ts <- Q_ts(Q400_raw)
 
@@ -381,8 +381,8 @@ Q101_sparse <- Q101_raw 								%>%
 	netr(.) 
 
 Q101 <- Q101_sparse										  %>%
-	neti(.) 											        %>%
-	nets(.)
+	nets(.) 											        %>%
+	neti(.)
 
 Q101_ts <- Q_ts(Q101_raw)
 
@@ -395,8 +395,8 @@ Q201_sparse <- Q201_raw 								%>%
 	netr(.)
 
 Q201 <- Q201_sparse 									  %>% 
-	neti(.) 											        %>%
-	nets(.)
+	nets(.) 											        %>%
+	neti(.)
 
 Q201_ts <- Q_ts(Q201_raw)
 
@@ -409,8 +409,8 @@ Q301_sparse <- Q301_raw 								%>%
 	netr(.)
 
 Q301 <- Q301_sparse 										%>% 
-	neti(.) 											        %>%
-	nets(.)
+	nets(.) 											        %>%
+	neti(.)
 
 Q301_ts <- Q_ts(Q301_raw)
 
@@ -423,8 +423,8 @@ Q401_sparse <- Q401_raw 								%>%
 	netr(.) 
 
 Q401 <- Q401_sparse 									  %>%
-	neti(.) 											        %>% 
-	nets(.)
+	nets(.) 											        %>% 
+	neti(.)
 
 Q401_ts <- Q_ts(Q401_raw)
 
@@ -548,7 +548,7 @@ On December 2, 2001, Enron filed for [bankruptcy protection].
 
 In less than a year, Enron underwent a complete reversal of fortune as its business strategies ran afoul of applicable regulations, among which were those of the Federal Energy Regulatory Commission (**FERC**).
 
-FERC [became aware] of irregularities in the California wholesale electricity market prices, a business in which Enron participated. An orientation to the issues is provided by [testimony] before FERC, which  provides a concise summary.^[The short version, which I can relate as a former California electric utility regulatory official from personal knowledge, is that public electric utilities were losing a large share of industrial customers to self-generation. Many businesses found it cheaper to generate on-site than to pay tariff rates. Foreseeably, residential and business customers without the option to self-generate would come to  bear the entire cost of unamortized utility fixed assets (termed *stranded costs*), and rates for retail, commercial and small industrial customers would increase. The adopted solution was to require the utilities to sell their generation plants and buy power on a new public market on a *day-ahead*, tomorrow's estimated demand, and an *hour-ahead* basis for unanticipated demand. Although much thought was devoted to the dangers that participants would game the system to sell or buy at discounts from market, insufficient consideration was given to multi-participant cooperation.]
+FERC [became aware] of irregularities in the California wholesale electricity market prices, a business in which Enron participated. An orientation to the issues is provided by [testimony] before FERC, which  provides a concise summary.^[The short version, which I can relate as a former California electric utility regulatory official from personal knowledge, is that public electric utilities were losing a large share of industrial customers to self-generation. Many businesses found it cheaper to generate on-site than to pay tariff rates. Foreseeably, residential and business customers without the option to self-generate would come to  bear the entire cost of unamortized utility fixed assets (termed *stranded costs*), and rates for retail, commercial and small industrial customers would increase. The adopted solution was to require the utilities to sell their generation plants and buy power on a new public market on a *day-ahead*, tomorrow's estimated demand, and an *hour-ahead* basis for unanticipated demand. Although much thought was devoted to the dangers that participants would game the system to sell at premiums or buy at discounts from market, insufficient consideration was given to multi-participant cooperation.]
 
 Following Enron's bankruptcy, FERC began an intense investigation, including the email records of 149 Enron employees. A preliminary [staff report] issued six months later.
 
@@ -564,7 +564,7 @@ Much of the focus was directed to keyword searches, sometimes called the *smokin
 
 ## Data acquisition
 
-I obtained a copy of the [2009 version] of the corpus. It contains copies of emails of a private nature that involve three users have who since requested to be [redacted]. I have removed those 27 emails.^[Most of my work on data wrangling and preliminary took place in 2010 in Python, relying heavily on the NLTK and networkx packages.]
+I obtained a copy of the [2009 version] of the corpus. It contains copies of emails of a private nature that involve three users have who since requested to be [redacted]. I have removed those 27 emails.^[Most of my work on data wrangling and preliminary analysis took place in 2010 in Python, relying heavily on the NLTK and networkx packages.]
 
 The following were extracted from the SQL database I prepared for my 2010 analysis on the graph portion of this paper.
 
@@ -602,7 +602,7 @@ Each email was a plaintext file^[Most had been generated by Microsoft Outlook, b
 ![Typical user data tree](img/dtree.jpg)
 
 
-Although tedious, traversing the directory tree, parsing the emails and loading them into an SQL database, was accomplished with a combination of Python and Perl scripting and standard bash tools. I do not reproduce that process here as it has little bearing on the main topic of this paper.
+Although tedious, traversing the directory tree, parsing the emails and loading them into an SQL database, was accomplished with a combination of Python and Perl scripting and standard bash tools. I do not reproduce that process here as it has little bearing on the main topic of this paper.^[For this paper, supplemental processing of the recipient field was necessary and reflected in the script to remove spurious punctation, such as the newline character embedded as slash-n.]
 
 ### Data structure
 
@@ -879,14 +879,15 @@ This metric introduces a new group of users unseen in the naive analysis.
 
 
 ```{r, echo=FALSE}
-kable(loadcent(Qall,rescale = TRUE) %>% sort(decreasing = TRUE) %>% head(10)) %>%   kable_styling(bootstrap_options = "striped", full_width = F, position = "center")
+ldc_10 <- loadcent(Qall,rescale = TRUE) %>% sort(decreasing = TRUE) %>% head(10)
+kable(ldc_10) %>%   kable_styling(bootstrap_options = "striped", full_width = F, position = "center")
 ggnet2(Qall, label = ldctr(Qall,10)$userid, label.size = 4, label.color = "darkblue", node.size = 0.25, edge.size = 0.25, edge.color = "grey")
 top_ldc <- prominence %>% select(userid, ldc) %>% arrange(desc(ldc)) %>% select(userid)
 ```
 
 ### Eigenvector centrality
 
-This measures the centrality of a vertex as a function of the centrality of the vertices to which it is connected, taking into account, in turn, the centrality of *those vertices.* The top results shown on this normalized scale; however the sum of these values for graph as a whole is `r  sum(evcent(Qall, use.eigen = TRUE))` with a mean of `r mean(evcent(Qall, use.eigen = TRUE))`.
+This measures the centrality of a vertex as a function of the centrality of the vertices to which it is connected, taking into account, in turn, the centrality of *those vertices.* The top results are shown on this normalized scale; however the sum of these values for graph as a whole is `r  sum(evcent(Qall, use.eigen = TRUE))` with a mean of `r mean(evcent(Qall, use.eigen = TRUE))`.
 
 
 ```{r, echo=FALSE}
@@ -913,12 +914,14 @@ pander::pander(cor.test(prominence$ldc,prominence$evc)) #%>%
 The union of users identified by these methods is
 
 ```{r, echo=FALSE}
-central_users <- (union(union(top_deg,top_ldc),top_evc)) %>% sort()
-kable(central_users) %>%  kable_styling(bootstrap_options = "striped", full_width = F, position = "center")
+central_users <- (union(union(top_deg,top_ldc),top_evc)) %>% sort(decreasing = TRUE) 
+kable(central_users) %>%
+kable_styling(bootstrap_options = "striped", full_width = F, position = "center")
+
 ggnet2(Qall, label = central_users, label.size = 4, label.color = "darkblue", node.size = 0.25, edge.size = 0.25, edge.color = "grey")
 ```
 
-which indicates some overlap, and user 1846, the star of the naive top-10 lists failed to make any of the formal top-10 lists.
+which indicates some overlap, and user 1846, the star of the naive top-10 lists failed to make any of the top-10 lists based on formal methods.
 
 One way to evaluate these measures of vertex centrality is to consider the same measures *applied to the graph as a whole* through `sna::centralization`.
 
@@ -930,19 +933,25 @@ Following inspection, the Qall 533 vertex graph was reduced by   170 vertices by
 
 ```{r, echo=FALSE}
 # calculate cumulative sums of normalized centrality measures
-deg_s <- prominence %>% select(userid, deg) %>% arrange(desc(deg)) %>% head(160)
-ldc_s <- prominence %>% select(userid, ldc) %>% arrange(desc(ldc)) %>% head(160)
-evc_s <- prominence %>% select(userid, evc) %>% arrange(desc(evc)) %>% head(160)
+deg_s <- prominence %>% select(userid, deg) %>% arrange(desc(deg)) %>% head(25)
+ldc_s <- prominence %>% select(userid, ldc) %>% arrange(desc(ldc)) %>% head(25)
+evc_s <- prominence %>% select(userid, evc) %>% arrange(desc(evc)) %>% head(25)
 deg_u <- deg_s %>% select(userid)
 ldc_u <- ldc_s %>% select(userid)
 evc_u <- evc_s %>% select(userid)
 top_u <- union(union(deg_u,ldc_u),evc_u) %>% sort()
 
-kable(top_u) %>%  kable_styling(bootstrap_options = "striped", full_width = F, position = "center")
+#kable(top_u) %>%  kable_styling(bootstrap_options = "striped", full_width = F, position = "center")
+top10 <- top_u$userid
+c_enron <- g_enron %>% filter(s_uid %in% top10 | r_uid %in% top10) 
+c_all <- netr(c_enron) %>% neti(.)
+ggnet2(c_all, label = top10, node.size = 0.25, node.color = "blue", edge.size = 0.25, edge.color = "grey")
+
+
 ```
 
-
-
+ %==%             
+This is a completely  un-decomposable graph. No way to extract nodes from apparent clusters. latentnet chokes
 
 
 
