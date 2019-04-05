@@ -1,3 +1,12 @@
+Save for Rmd
+# format digits to zero places
+
+comma0 <- function(x) format(x, digits = 0, big.mark = ",")
+
+# format digits to two places
+
+comma2 <- function(x) format(x, digits = 2, big.mark = ",")
+
 more recievers than senders and vv
 intersect ~ 300 # interesting
 

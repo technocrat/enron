@@ -1,7 +1,7 @@
 ---
-title: "Social Network Analysis of the Core Enron Corpus"
+title: "Social Network Analysis of the Enron Corpus"
 author: Richard Careaga
-date:   2019-03-29
+date:   2019-04-03
 output: pdf_document
 urlcolor: blue
 ---
@@ -11,21 +11,17 @@ urlcolor: blue
 # silently load libraries
 
 suppressPackageStartupMessages(library(coda))
-suppressPackageStartupMessages(library(ggnetwork))
-suppressPackageStartupMessages(library(here))
 suppressPackageStartupMessages(library(GGally))
 suppressPackageStartupMessages(library(ggnetwork))
 suppressPackageStartupMessages(library(ggthemes))
+suppressPackageStartupMessages(library(here))
 suppressPackageStartupMessages(library(hrbrthemes))
-suppressPackageStartupMessages(library(kableExtra))
 suppressPackageStartupMessages(library(latentnet))
 suppressPackageStartupMessages(library(network))
 suppressPackageStartupMessages(library(sna))
 suppressPackageStartupMessages(library(statnet))
 suppressPackageStartupMessages(library(statnet.common))
 suppressPackageStartupMessages(library(tidyverse))
-
-knitr::opts_chunk$set(echo = TRUE)
 
 # make reproducible
 
@@ -45,7 +41,7 @@ comma0 <- function(x) format(x, digits = 0, big.mark = ",")
 
 comma2 <- function(x) format(x, digits = 2, big.mark = ",")
 
-# create graph object 
+# create network package graph object 
 
 netr <- function(x) {
 	net <- network(x, matrix.type = "edgelist")
@@ -59,10 +55,10 @@ neti <- function(x) {
 
 # symmetrize: limit to two-way users
 
-nets <- function(x) {
-  x <- symmetrize(x , rule = "strong", return.as.edgelist=TRUE)
-  x <- network(x, matrix.type = "edgelist")
-}
+# nets <- function(x) {
+#   x <- symmetrize(x , rule = "strong", return.as.edgelist=TRUE)
+#   x <- network(x, matrix.type = "edgelist")
+# }
 
 # number of vertices in a network object
 
@@ -106,51 +102,7 @@ Q_ts <- function(x) {
 
 # x is Qxxx_ts, a tibble object, y is the date interval character
 plot_ts <- function(x,y) {
-ggplot(data = x, aes(x = date, y = log10(n)))      				      + 
-  geom_point(size = 0.75) + geom_smooth()                       +
-  xlab("Month")                                                 +
-  ylab("Number (log10) of private messages")                    +
-  scale_x_date(date_breaks = "1 month", date_labels = "%y-%m")  +
-  labs(title="Time series chart of reduced Enron corpus",
-   	subtitle= y,		  
-   	caption="Source: Richard Careaga")			  				+ 
-   	theme(axis.text.x = element_text(angle = 30, hjust = 1))
-}
-
-
-# find the users with the top n evcent reduced 
-# # in a graph object	x
-evctr <-  function(x,n) {
-	enframe(evcent(x, use.eigen = TRUE))  %>%
-	mutate(userid = userid$userid[name]) 	%>%
-	select(userid, value)			        		%>%
-	rename(evcent = value)     				    %>%
-	arrange(desc(evcent)) 	  				    %>%
-	top_n(n)
-}
-
-# find the users with the top n loadcent reduced 
-# # in a graph object	x
-ldctr <-  function(x,n) {
-	enframe(loadcent(x, rescale = TRUE))  %>%
-	mutate(userid = userid$userid[name]) 	%>%
-	select(userid, value)			        		%>%
-	rename(loadcent = value)   				    %>%
-	arrange(desc(loadcent)) 					    %>%
-	top_n(n)
-}
-
-# find the users with the top n degree reduced
-# in a graph object	x
-deg <-  function(x,n) {
-	enframe(degree(x, rescale = TRUE))    %>% 
-	mutate(userid = userid$userid[name]) 	%>%
-	select(userid, value)			        		%>%
-	rename(degree = value)				      	%>%
-	arrange(desc(degree))					        %>%
-	top_n(n)
-}
-
+verti
 
 # Get x-y coordinates for selective plotting of userid
 # x is a network object
@@ -160,108 +112,97 @@ get_xy <- function(x) {
 }
 
 
-# data cleansing of recipient emails
-
 # email recipient cleanser patterns 
 faux_nl   	<-	"\\\n"
 left_brak	  <-	"\\["
 right_brak	<-	"\\]"
+quote_s     <-  "'"
 
-# ============================================================
-# Code in this block commented out for `knitr` purposes
-# load source data set from AWS
+node
 
-# con <- url("https://s3-us-west-2.amazonaws.com/dslabs.nostromo/enron.Rda")
-# load(con)
-# close(con)
-# 
-# # Note: tibbles do not serialize
-# 
-# enron <- as_tibble(enron)
-# 
-# # remove supurious characters
-# 
-# g_enron <- enron 								                		  %>% 
-# 	mutate(tos = str_replace_all(tos, faux_nl, ""))		  %>%
-# 	mutate(tos = str_replace_all(tos, left_brak, "")) 	%>%
-# 	mutate(tos = str_replace_all(tos, right_brak, ""))	%>%
-# 	mutate(ccs = str_replace_all(ccs, faux_nl, ""))		  %>%
-# 	mutate(ccs = str_replace_all(ccs, left_brak, ""))	  %>%
-# 	mutate(ccs = str_replace_all(ccs, right_brak, ""))	
-# 
+ 
+# remove supurious characters from recipients field, 'tos'
+
+g_enron <- enron 								                		  %>%
+	mutate(tos = str_replace_all(tos, faux_nl, ""))		  %>%
+	mutate(tos = str_replace_all(tos, left_brak, "")) 	%>%
+	mutate(tos = str_replace_all(tos, right_brak, ""))	%>%
+	mutate(tos = str_replace_all(tos, quote_s, ""))
+	
+#
 # # restrict to single recipient
-# 
+#
 # g_enron <- g_enron %>% filter(tosctn == 1 & ccsctn == 0)
-# 
-# # censor non-enron addresses
-# 
-# g_enron <- g_enron                        %>% 
-#   filter(str_detect(tos, "enron.com"))    %>%
-#   filter(str_detect(sender, "enron.com")) %>%
-#   select(sender, tos, date, lastword)     %>%
-#   rename(recipient = tos)
-# 
+#
+# # censor non-enron addresses and reduce fields
+#
+g_enron <- g_enron                        %>%
+  filter(str_detect(tos, "enron.com"))    %>%
+  filter(str_detect(sender, "enron.com")) %>%
+  select(sender, tos, date, lastword)     %>%
+  rename(recipient = tos, payload = lastword)
+#
 # # remove @enron.com from user names and single quotes
-# 
+#
 # g_enron  <- g_enron                                           %>%
-#   mutate(sender = str_replace_all(sender, ".enron.com", ""))  %>% 
-#   mutate(recipient = str_replace_all(recipient, 
+#   mutate(sender = str_replace_all(sender, ".enron.com", ""))  %>%
+#   mutate(recipient = str_replace_all(recipient,
 #                                      ".enron.com.", ""))      %>%
 #   mutate(recipient = str_replace_all(recipient, "'", ""))
-# 
+#
 # # censor internal group addresses
-# 
+#
 # excluded_users <- c("all-hou.dl-bus", "all.america", "all.employees", "center.dl_portland", "chick.home", "clickathome", "clickathomepilot3", "dl-ga-all-ews", "dl-ga-all_enron_worldwide ", "dl-ga-all_enron_worldwide1", "dl-ga_all_enron_worldwide2", "dl-gal-all_enron_north_america2", "enron.chairman", "enron.gss", "executive.committee", "expense.report", "group.dl-ets", "helpdesk.mailman", "info", "outlook.team", "perfmgmt", "perfmgmt@ect", "portland", "portland.desk", "portland.shift", "sap_security", "the.globalist", "traders.eol", "trading .williams", "transportation.parking", "undisclosed-recipients")
-# 
+#
 # g_enron <- g_enron %>% filter(sender %out% excluded_users)
 # g_enron <- g_enron %>% filter(recipient %out% excluded_users)
-# 
+#
 # # add record identification
-# 
+#
 # g_enron <- rownames_to_column(g_enron, var = "recno")
-# 
-# # collect unique user names
-# 
-# sender    <- g_enron %>% select(sender)     %>% distinct()
-# recipient <- g_enron %>% select(recipient)  %>% distinct()
-# colnames(sender)    <- "user"
-# colnames(recipient) <- "user"
-# users <- bind_rows(sender,recipient)
-# users <- users %>% distinct()
-# 
-# # assign numeric identifiers to users
-# 
-# set.seed(2203)
-# user_pool <- seq(1000,nrow(users)+1001,1)
-# userid <- enframe(sample(user_pool, nrow(users), 
-#           replace = FALSE))                     %>%
-#           select(-name)                         %>%
-#           rename(userid = value)                %>%
-#           mutate(userid = as.integer(userid))
-# userid <- bind_cols(users, userid)
-# 
-# #save(userid, file = "userid.Rda")
-# 
-# # rename userid columns to join to g_enron as sender s_uid
-# 
-# colnames(userid) <- c("sender", "s_uid")
-# g_enron <- left_join(g_enron, userid)
-# 
-# # again for recipient r_uid
-# 
-# colnames(userid) <- c("recipient", "r_uid")
-# g_enron <- left_join(g_enron, userid)
-# 
-# # replace r_uid with userid
-# 
-# userid <- userid %>% rename(userid = r_uid)
-# 
-# # for inter-session conveience
+#
+# collect unique user names
+
+sender    <- g_enron %>% select(sender)     %>% distinct()
+recipient <- g_enron %>% select(recipient)  %>% distinct()
+colnames(sender)    <- "user"
+colnames(recipient) <- "user"
+users <- bind_rows(sender,recipient)
+users <- users %>% distinct()
+#
+# assign numeric identifiers to users
+
+set.seed(2203)
+user_pool <- seq(1000,nrow(users)+1001,1)
+userid <- enframe(sample(user_pool, nrow(users),
+          replace = FALSE))                     %>%
+          select(-name)                         %>%
+          rename(userid = value)                %>%
+          mutate(userid = as.integer(userid))
+userid <- bind_cols(users, userid)
+
+#save(userid, file = "userid.Rda")
+#
+# rename userid columns to join to g_enron as sender s_uid
+
+colnames(userid) <- c("sender", "s_uid")
+g_enron <- left_join(g_enron, userid)
+
+# again for recipient r_uid
+
+colnames(userid) <- c("recipient", "r_uid")
+g_enron <- left_join(g_enron, userid)
+
+# replace r_uid with userid
+
+userid <- userid %>% rename(userid = r_uid)
+
+# for inter-session convenience
 #save(g_enron, file = "g_enron.Rda")
 
 # # remove unneed objects from namespace
-# 
-# rm(enron, faux_nl, left_brak, right_brak, user_pool, users)
+#
+# rm(enron, faux_nl, left_brak, right_brak, user_pool, users, userid)
 
 # divide into quarters and create file for all quarters
 # including only symmetrical pairs sender -> recipient
@@ -487,18 +428,18 @@ r_uid_count <- g_enron                                %>%
   ungroup()                                           %>%
   arrange(desc(n))
 
-recd_p <- ggplot(r_uid_count, aes(log10(n)))		+ 
-	geom_bar() 										+ 
-	coord_flip() 									+
-	xlab("Emails (log10) received") 				+
-	ylab("Number of users")		 					+
-	send_q1    										+
-	send_q2     	 								+
-	send_q3 	     								+
-	labs(title = "Emails received per user",
-        subtitle = "January 2000-November 2001",		  
-        caption = "Source: Richard Careaga")		#+ 
-    #theme_ipsum_rc()
+# recd_p <- ggplot(r_uid_count, aes(log10(n)))		+ 
+# 	geom_bar() 										+ 
+# 	coord_flip() 									+
+# 	xlab("Emails (log10) received") 				+
+# 	ylab("Number of users")		 					+
+# 	send_q1    										+
+# 	send_q2     	 								+
+# 	send_q3 	     								+
+# 	labs(title = "Emails received per user",
+#         subtitle = "January 2000-November 2001",		  
+#         caption = "Source: Richard Careaga")		#+ 
+#     #theme_ipsum_rc()
 
 
 ```
