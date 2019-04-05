@@ -286,32 +286,37 @@ centers <- prominence %>% select(userid, sts) %>% arrange(desc(sts))
 
 top25_d <- prominence %>% arrange(desc(deg)) %>% head(25) %>% select(userid)
 top25_l <- prominence %>% arrange(desc(ldctr)) %>% head(25) %>% select(userid)
-top25_s <- prominence %>% arrange(desc(sts)) %>% head(25) %>% select(userid)
+top25_s <- prominence %>% arrange(desc(sts)) %>% head(100) %>% select(userid)
 
 # union of the userids with top 25 scores on three measures of centrality 12 +
-positioned <- union(union(top25_d,top25_l), top25_s)
+well_positioned <- union(union(top25_d,top25_l), top25_s)
 
-# core Enron
+# core Enron high-centrality exchanges
+
 c_enron <- g_enron %>% filter(s_uid %in% top25_s$userid &
                               r_uid %in% top25_s$userid)
 
 # for Rmd
+
 size_of_core <- nrow(c_enron)
 
 net2 <- c_enron %>% select(s_uid, r_uid) %>% netr(.)
+net2 <- neti(net2)
+
+# 100 vertices and d=2 gives only one cluster
 
 c0.fit <- ergmm(net2 ~ euclidean(d=2))
 mcmc.diagnostics(c0.fit)
 plot(c0.fit,labels=TRUE,rand.eff="receiver")
 
 c1.fit <- ergmm(net2 ~ euclidean(d=2, G=3)+rreceiver,
-                control=ergmm.control(store.burnin=TRUE))
-mcmc.diagnostics(c0.fit)
+                control=ergmm.control(store.burnin=TRUE), seed = 2203)
+mcmc.diagnostics(c1.fit)
 plot(c1.fit,pie=TRUE,rand.eff="receiver")
 plot(c1.fit,what="pmean",rand.eff="receiver")
 plot(c1.fit,what="cloud",rand.eff="receiver")
 plot(c1.fit,what="density",rand.eff="receiver")
 plot(c1.fit,what=5,rand.eff="receiver")
-plot(c1.fit,use.rgl=FALSE)
-plot(c1.fit,use.rgl=TRUE)
-plot(simulate(c1.fit))
+summary(c1.fit)These can be used to map userids to clusters
+network.vertex.names(net2)
+c1.fit$mkl$Z.K
