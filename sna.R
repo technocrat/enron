@@ -196,7 +196,7 @@ rm(con, enron, faux_nl, left_brak, quote_s, recipient, right_brak, sender,
    user_pool, userid, users)
 
 # begin exploratory analysis
-
+load("g_enron.Rda")
 time_series <- g_enron %>% group_by(date) %>% count() %>% ungroup()
 
 # for Rmd summary
@@ -210,8 +210,8 @@ ts_plot <- time_series %>% ggplot(., aes(x = date, y = log10(n)))      					    
   scale_x_date(date_breaks = "1 month", date_labels = "%Y-%m")  +
   labs(title="Time series chart of reduced Enron corpus",
        subtitle= "January 1, 2000 - December 2, 2001",
-       caption="Source: Richard Careaga")			  				+
-  theme_minimal()												+
+       caption="Source: Richard Careaga")			  				        +
+  theme_minimal()										                        		+
   theme(axis.text.x = element_text(angle = 30, hjust = 1))
 
 # create initial graph
@@ -225,7 +225,7 @@ net0_members       <- cohort(net0)
 
 # net0 plot, including isolates
 
-net0_plot <- plot_graph(net0, "Graph of Enron corpus after cleansing")
+net0_plot <- plot_graph(net0, "Graph of Enron corpus before cleansing")
 
 # net1, removing isolates
 
@@ -265,7 +265,7 @@ prominence  <- bind_cols(vertices = vertices, deg = deg,
 
 # size of prominence with centrality metrics for RMD
 
-prom_wit_ctrs < nrow(prominence)
+prom_with_ctrs <- nrow(prominence)
 
 
 # deg_s   <- scale(deg)   %>% sort(decreasing = TRUE) %>% head(100) 100 >0
@@ -282,19 +282,20 @@ deg_ldctr <- cor.test(deg,ldctr)  # 0.6786184
 deg_sts   <- cor.test(deg,sts)    # 0.8656096
 ldctr_sts <- cor.test(ldctr,sts)  # 0.7176663
 
-centers <- prominence %>% select(userid, sts) %>% arrange(desc(sts))
 
 top25_d <- prominence %>% arrange(desc(deg)) %>% head(25) %>% select(userid)
 top25_l <- prominence %>% arrange(desc(ldctr)) %>% head(25) %>% select(userid)
-top25_s <- prominence %>% arrange(desc(sts)) %>% head(100) %>% select(userid)
+top25_s <- prominence %>% arrange(desc(sts)) %>% head(25) %>% select(userid)
+top100_s <- prominence %>% arrange(desc(sts)) %>% head(100) %>% select(userid)
 
 # union of the userids with top 25 scores on three measures of centrality 12 +
+
 well_positioned <- union(union(top25_d,top25_l), top25_s)
 
 # core Enron high-centrality exchanges
 
-c_enron <- g_enron %>% filter(s_uid %in% top25_s$userid &
-                              r_uid %in% top25_s$userid)
+c_enron <- g_enron %>% filter(s_uid %in% top100_s$userid &
+                              r_uid %in% top100_s$userid)
 
 # for Rmd
 
@@ -311,12 +312,34 @@ plot(c0.fit,labels=TRUE,rand.eff="receiver")
 
 c1.fit <- ergmm(net2 ~ euclidean(d=2, G=3)+rreceiver,
                 control=ergmm.control(store.burnin=TRUE), seed = 2203)
+# charts are interactively triggered
 mcmc.diagnostics(c1.fit)
 plot(c1.fit,pie=TRUE,rand.eff="receiver")
 plot(c1.fit,what="pmean",rand.eff="receiver")
 plot(c1.fit,what="cloud",rand.eff="receiver")
 plot(c1.fit,what="density",rand.eff="receiver")
 plot(c1.fit,what=5,rand.eff="receiver")
-summary(c1.fit)These can be used to map userids to clusters
-network.vertex.names(net2)
-c1.fit$mkl$Z.K
+summary(c1.fit)
+
+#Map userids to clusters
+
+net2.gc <-  enframe(c1.fit$mkl$Z.K)             %>%
+            select(-name)                       %>%
+            rename(gcl = value)
+
+net2.gc <- bind_cols(top100_s, net2.gc)
+
+net2.gc <- net2.gc %>% rename(s_uid = userid, s_gcl = gcl)
+
+c_enron <- left_join(c_enron, net2.gc)
+
+net2.gc <- net2.gc %>% rename(r_uid = s_uid, r_gcl = s_gcl)
+
+c_enron <- left_join(c_enron, net2.gc)
+
+#save(c_enron, file = "c_enron.Rda")
+
+# possible use with expanded network
+# c_enron <- c_enron %>% mutate(s.gc = ifelse(gcl > 0, gcl, 0)) %>%
+#                        mutate(r.gc = ifelse(gcl > 0, gcl, 0)
+
