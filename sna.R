@@ -1,6 +1,7 @@
 suppressPackageStartupMessages(library(coda))
 suppressPackageStartupMessages(library(ggnetwork))
 suppressPackageStartupMessages(library(here))
+suppressPackageStartupMessages(library(ergm))
 suppressPackageStartupMessages(library(GGally))
 suppressPackageStartupMessages(library(ggnetwork))
 suppressPackageStartupMessages(library(ggthemes))
@@ -74,7 +75,7 @@ quote_s     <-  "'"
 con <- url("https://s3-us-west-2.amazonaws.com/dslabs.nostromo/enron.Rda")
 load(con)
 close(con)
-save(enron, file = "enron.Rda")
+#save(enron, file = "enron.Rda")
 load("enron.Rda")
 
 # save for Rmd inline
@@ -215,7 +216,7 @@ ts_plot <- time_series %>% ggplot(., aes(x = date, y = log10(n)))      					    
 
 # create initial graph
 
-net0 < g_enron %>% select(node, s_uid, r_uid) %>% netr(.)
+net0 <- g_enron %>% select(s_uid, r_uid) %>% netr(.)
 
 # for Rmd
 
@@ -239,16 +240,19 @@ net1_members       <- cohort(net1)
 
 net1_plot <- plot_graph(net1, "Graph of Enron corpus after cleansing")
 
-# Assess measures of centrality on de-isolated network
+# Assess measures of centrality on de-isolated graph net1
 
-deg   <- degree(net1)
-ldctr <- loadcent(net1)
-sts   <- stresscent(net1)
+# High transitivity
+gt.cg <- gtrans(net1, measure = "strong", use.adjacency = FALSE)
 
-# btw <-  betweenness(net1) # redundant with ldctr
+deg   <- degree(net1, rescale = TRUE)
+ldctr <- loadcent(net1, rescale = TRUE)
+sts   <- stresscent(net1, rescale = TRUE)
+
+# btw <- betweenness(net1) # redundant with ldctr
 # inf <- infocent(net1) all 1.206801e-13
 # cls <- closeness(net1) all 0
-# evc <- evcent(net1, use.eigen = TRUE) imaginary numbers
+# evc <- evcent(net1, use.eigen = TRUE) net1 not symmetrical
 # bon <- bonpow(net1) Lapack routine dgesv: system is exactly singular:
 # flo <- flowbet(net1) ran 10 minutes without finished
 # flo <- flowbet(net1, cmode = "normflow") ditto
@@ -259,16 +263,55 @@ vertices    <- enframe(vertices) %>% rename(userid = value) %>% select(-name)
 prominence  <- bind_cols(vertices = vertices, deg = deg,
                          ldctr = ldctr, sts = sts)
 
-# HOW TO STICH VERTICES do we need to; when scaled Pearson 0.966, 0.982, 0.992
-# So, pick one!
+# size of prominence with centrality metrics for RMD
 
-deg_s   <- scale(deg)   %>% sort(decreasing = TRUE) %>% head(100)
-ldctr_s <- scale(ldctr) %>% sort(decreasing = TRUE) %>% head(100)
-sts_s   <- scale(sts)   %>% sort(decreasing = TRUE) %>% head(100)
+prom_wit_ctrs < nrow(prominence)
 
-  # For Rmd
 
-deg_ldctr <- cor.test(deg,ldctr)
-deg_sts   <- cor.test(deg,sts)
-ldctr_sts <- cor.test(ldctr,sts)
+# deg_s   <- scale(deg)   %>% sort(decreasing = TRUE) %>% head(100) 100 >0
+# ldctr_s <- scale(ldctr) %>% sort(decreasing = TRUE) %>% head(100) 48 >0
+# sts_s   <- scale(sts)   %>% sort(decreasing = TRUE) %>% head(100) 34 > 0
+# IQR deg_s   0.6249918
+# IQR ldctr_s 1.017439
+# IQR str_s   0.4197411
 
+# For Rmd
+
+
+deg_ldctr <- cor.test(deg,ldctr)  # 0.6786184
+deg_sts   <- cor.test(deg,sts)    # 0.8656096
+ldctr_sts <- cor.test(ldctr,sts)  # 0.7176663
+
+centers <- prominence %>% select(userid, sts) %>% arrange(desc(sts))
+
+top25_d <- prominence %>% arrange(desc(deg)) %>% head(25) %>% select(userid)
+top25_l <- prominence %>% arrange(desc(ldctr)) %>% head(25) %>% select(userid)
+top25_s <- prominence %>% arrange(desc(sts)) %>% head(25) %>% select(userid)
+
+# union of the userids with top 25 scores on three measures of centrality 12 +
+positioned <- union(union(top25_d,top25_l), top25_s)
+
+# core Enron
+c_enron <- g_enron %>% filter(s_uid %in% top25_s$userid &
+                              r_uid %in% top25_s$userid)
+
+# for Rmd
+size_of_core <- nrow(c_enron)
+
+net2 <- c_enron %>% select(s_uid, r_uid) %>% netr(.)
+
+c0.fit <- ergmm(net2 ~ euclidean(d=2))
+mcmc.diagnostics(c0.fit)
+plot(c0.fit,labels=TRUE,rand.eff="receiver")
+
+c1.fit <- ergmm(net2 ~ euclidean(d=2, G=3)+rreceiver,
+                control=ergmm.control(store.burnin=TRUE))
+mcmc.diagnostics(c0.fit)
+plot(c1.fit,pie=TRUE,rand.eff="receiver")
+plot(c1.fit,what="pmean",rand.eff="receiver")
+plot(c1.fit,what="cloud",rand.eff="receiver")
+plot(c1.fit,what="density",rand.eff="receiver")
+plot(c1.fit,what=5,rand.eff="receiver")
+plot(c1.fit,use.rgl=FALSE)
+plot(c1.fit,use.rgl=TRUE)
+plot(simulate(c1.fit))
