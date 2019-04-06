@@ -321,6 +321,11 @@ plot(c1.fit,what="density",rand.eff="receiver")
 plot(c1.fit,what=5,rand.eff="receiver")
 summary(c1.fit)
 
+# Goodnet of fit
+
+c1.gof <- gof(c1.fit)
+c1.gof.plot <- plot(c1.gof, plotlogodds=TRUE)
+
 #Map userids to clusters
 
 net2.gc <-  enframe(c1.fit$mkl$Z.K)             %>%
@@ -330,6 +335,7 @@ net2.gc <-  enframe(c1.fit$mkl$Z.K)             %>%
 net2.gc <- bind_cols(top100_s, net2.gc)
 
 net2.gc <- net2.gc %>% rename(s_uid = userid, s_gcl = gcl)
+
 
 c_enron <- left_join(c_enron, net2.gc)
 

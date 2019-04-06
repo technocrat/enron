@@ -300,7 +300,6 @@ cluster0_cleaned <- paste(milled, sep = '', collapse = '')
 #save(cluster0_cleaned, file = "cluster0_cleaned.Rda")
 
 # Bring the unclustered Enron plaintext into a `tm` package object
-c0_corpus <- VectorSource(cluster0_cleaned)
 c0_corpus <- VCorpus(c0_corpus)
 c0_corpus <- tm_map(c0_corpus, stripWhitespace)
 c0_corpus <- tm_map(c0_corpus, content_transformer(tolower))
