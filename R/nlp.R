@@ -1,10 +1,12 @@
 suppressPackageStartupMessages(library(dplyr))
 suppressPackageStartupMessages(library(ggplot2))
+suppressPackageStartupMessages(library(hrbrthemes))
 suppressPackageStartupMessages(library(magrittr))
 suppressPackageStartupMessages(library(pander))
 suppressPackageStartupMessages(library(scales))
 suppressPackageStartupMessages(library(slam))
 suppressPackageStartupMessages(library(stringr))
+suppressPackageStartupMessages(library(ggthemes))
 suppressPackageStartupMessages(library(tibble))
 suppressPackageStartupMessages(library(tidyr))
 suppressPackageStartupMessages(library(tidytext))
@@ -28,44 +30,31 @@ suppressPackageStartupMessages(library(topicmodels))
 e_text <- enron %>% rename(text = lastword) %>% select(text)
 
 # patterns for "textified" newlines, returns, tabs and Notes hypenation
+# plus tokens tidytext::unnest_tokens fails to remove
 
 pattern1  <- "\\\n"
 pattern2  <- "\\\t"
 pattern3  <- "\\\r"
 pattern4  <- "="
 
-# remove patterns1-4,
-e_text <- e_text %>% mutate(text = str_replace_all(text, pattern1, " ")) %>%
-                     mutate(text = str_replace_all(text, pattern2, " ")) %>%
-                     mutate(text = str_replace_all(text, pattern3, " ")) %>%
-                     mutate(text = str_replace_all(text, pattern4, " "))
+# pre-process for tokenization
+
+e_text <- e_text %>%  mutate(text = str_replace_all(text, pattern1, " "))    %>%
+                      mutate(text = str_replace_all(text, pattern2, " "))    %>%
+                      mutate(text = str_replace_all(text, pattern3, " "))    %>%
+                      mutate(text = str_replace_all(text, pattern4, " "))    %>%
+                      mutate(text = str_replace_all(text, "[:punct:]", " ")) %>%
+                      mutate(text = str_replace_all(text, "[:blank:]", " ")) %>%
+                      mutate(text = str_replace_all(text, "[:digit:]", " "))
 
 # remove numbers, urls, punctuation and lowercase
 
-e_text <- e_text %>% unnest_tokens(word, text, to_lower = TRUE,
-                      strip_punct = TRUE, strip_numeric = TRUE)
+e_text <- e_text %>% unnest_tokens(word, text, to_lower = TRUE)
 
 # load tidytext package of parts of speech to ignore
 data(stop_words)
 
-# reconsider
-# # identify possibly interesting words to bypass stop word filter
-#
-# exempt_stopwords <- enframe(c("against", "all", "allow", "allows", "always",
-#                               "awfully", "beforehand", "behind", "below",
-#                               "better", "big", "can't", "cannot", "cant",
-#                               "case", "cases", "downwards", "except", "gives",
-#                               "good", "great", "highest", "hopefully",
-#                               "immediate", "might", "necessary", "not",
-#                               "nowhere", "numbers", "otherwise", "point",
-#                               "serious", "seriously", "state", "states",
-#                               "unfortunately", "value", "worked", "working",
-#                               "zero"))
-#
-# # create custom stopword list
-#
-# colnames(exempt_stopwords) <- c("line", "word")
-# stop_words <- anti_join(stop_words, exempt_stopwords)
+# add stops
 
 add_stops <- c("ect", "hou", "enronxgate", "enron", "corp", "company",
                "enron.com")
@@ -80,7 +69,153 @@ stop_words <- bind_rows(stop_words, new_stops)
 e_text <- e_text %>% anti_join(stop_words)
 
 # for Rmd
-top_100_words <- e_text %>% count(word, sort = TRUE) %>% print(n = 100)
+e_top_100_words <- e_text %>% count(word, sort = TRUE) %>% print(n = 100)
 
 # checkpoint
-#save(e_text, file = "e_text.Rda")
+# save(e_text, file = "e_text.Rda")
+
+# # consider for Rmd
+
+e_top_words <- e_text %>% count(word, sort = TRUE)  %>%
+            filter(n > 1500)                       %>%
+            mutate(word = reorder(word,n))         %>%
+            ggplot(aes(word,n))       +
+            geom_col(fill = "grey50")  +
+            xlab(NULL)                +
+            coord_flip()              +
+            labs(title="Most frequent words in un-reduced Enron corpus",
+                 subtitle= "Occuring 1,500 times or more",
+            caption="Source: Richard Careaga")	+
+            theme_ipsum_rc()
+
+# Zipf for Rmd
+
+e_zipf <- e_text %>%  count(word, sort = TRUE)  %>%
+            mutate(word = reorder(word, n))   %>%
+            mutate(rank = row_number())       %>%
+            mutate(freq = n/nrow(e_text))     %>%
+            ggplot(aes(rank, freq))                 +
+            xlab("Rank")                            +
+            ylab("Frequency")                       +
+            geom_line()                             +
+            scale_x_log10()                         +
+            scale_y_log10()                         +
+            labs(title="Word frequency of un-reduced Enron corpus",
+                subtitle= "Zipf distribution of approximately 573K words",
+                caption="Source: Richard Careaga")	+
+                theme_ipsum_rc()
+
+# Enron wide vocabulary
+
+e_vocab <- e_text %>% distinct(word)
+e_vocab_size <- nrow(e_vocab)
+
+# process the graph reduced words
+
+#load("g_egnron.Rda")
+
+g_text <- g_enron %>% rename(text = payload) %>% select(text)
+
+# pre-process for tokenization
+
+g_text <- g_text %>%  mutate(text = str_replace_all(text, pattern1, " ")) %>%
+  mutate(text = str_replace_all(text, pattern2, " "))                     %>%
+  mutate(text = str_replace_all(text, pattern3, " "))                     %>%
+  mutate(text = str_replace_all(text, pattern4, " "))                     %>%
+  mutate(text = str_replace_all(text, "[:punct:]", " "))                  %>%
+  mutate(text = str_replace_all(text, "[:blank:]", " "))                  %>%
+  mutate(text = str_replace_all(text, "[:digit:]", " "))
+
+# remove numbers, urls, punctuation and lowercase
+
+g_text <- g_text %>% unnest_tokens(word, text, to_lower = TRUE)
+
+# tokenize
+
+g_text <- g_text %>% unnest_tokens(word, text, to_lower = TRUE)
+
+# remove stop_words from g_text
+
+g_text <- g_text %>% anti_join(stop_words)
+
+# for Rmd
+g_top_100_words <- g_text %>% count(word, sort = TRUE) %>% print(n = 100)
+
+# checkpoint
+# save(g_text, file = "g_text.Rda")
+
+# # consider for Rmd
+
+g_top_words <- g_text %>% count(word, sort = TRUE)  %>%
+  filter(n > 250)                                   %>%
+  mutate(word = reorder(word,n))                    %>%
+  ggplot(aes(word,n))         +
+  geom_col(fill = "grey50")   +
+  xlab(NULL)                  +
+  coord_flip()                +
+  labs(title="Most frequent words in un-reduced Enron corpus",
+       subtitle= "Occuring 250 times or more",
+       caption="Source: Richard Careaga")	+
+  theme_ipsum_rc()
+
+# Zipf for Rmd
+
+g_zipf <- g_text %>%  count(word, sort = TRUE)  %>%
+  mutate(word = reorder(word, n))   %>%
+  mutate(rank = row_number())       %>%
+  mutate(freq = n/nrow(g_text))     %>%
+  ggplot(aes(rank, freq))                 +
+  xlab("Rank")                            +
+  ylab("Frequency")                       +
+  geom_line()                             +
+  scale_x_log10()                         +
+  scale_y_log10()                         +
+  labs(title="Word frequency of core Enron corpus",
+       subtitle= "Zipf distribution of approximately 13K words",
+       caption="Source: Richard Careaga")	+
+  theme_ipsum_rc()
+
+# Core graph vocabulary
+# for Rmd note reduction
+
+g_vocab <- g_text %>% distinct(word)
+
+g_vocab_size <- nrow(g_vocab)
+
+# for Rmd
+
+g_vocab_proportion <- g_vocab_size/e_vocab_size
+
+g_excluded <- setdiff(e_vocab,g_vocab)
+
+d_top_100_words <- g_excluded %>% count(word, sort = TRUE) %>% print(n = 100)
+
+d_singlets <- g_excluded %>% count(word)
+
+max_singlets <- max(d_singlets$n)
+
+# checkpoint save vocabulary of core graph; the vocabulary of the entire
+# corpus consists of singletons
+# save(g_vocab, file = "g_vocab.Rda")
+
+# swtich to tm to create document term matrix
+
+g_vs  <- VectorSource(g_vocab$word)
+g_corpus <- VCorpus(g_vs)
+g_dtm <- DocumentTermMatrix(g_corpus) # 100% sparse
+# remove empty rows
+ui = unique(g_dtm$i)
+g_dtm = g_dtm[ui,]
+g_lda <- LDA(g_dtm, k = 3, control =  list(seed = 2203))
+g_topics <- tidy(g_lda, metrix = "beta")
+
+g_top_terms <- g_topics %>% group_by(topic) %>% top_n(50, beta) %>% ungroup() %>%
+  arrange(topic, -beta)
+
+# Use Rmd
+g_topic_plot <- g_top_terms %>% mutate(term = reorder(term, beta)) %>%
+  ggplot(aes(term, beta, fill = factor(topic)))   +
+  geom_col(show.legend = FALSE)                   +
+  facet_wrap(~ topic, scales = "free")            +
+  coord_flip()
+
