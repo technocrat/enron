@@ -5,6 +5,32 @@ output: pdf_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+suppressPackageStartupMessages(library(coda))
+suppressPackageStartupMessages(library(dplyr))
+suppressPackageStartupMessages(library(ergm))
+suppressPackageStartupMessages(library(GGally))
+suppressPackageStartupMessages(library(ggnetwork))
+suppressPackageStartupMessages(library(ggplot2))
+suppressPackageStartupMessages(library(ggthemes))
+suppressPackageStartupMessages(library(here))
+suppressPackageStartupMessages(library(hrbrthemes))
+suppressPackageStartupMessages(library(kableExtra))
+suppressPackageStartupMessages(library(latentnet))
+suppressPackageStartupMessages(library(magrittr))
+suppressPackageStartupMessages(library(network))
+suppressPackageStartupMessages(library(pander))
+suppressPackageStartupMessages(library(scales))
+suppressPackageStartupMessages(library(slam))
+suppressPackageStartupMessages(library(sna))
+suppressPackageStartupMessages(library(statnet))
+suppressPackageStartupMessages(library(statnet.common))
+suppressPackageStartupMessages(library(stringr))
+suppressPackageStartupMessages(library(tibble))
+suppressPackageStartupMessages(library(tidyr))
+suppressPackageStartupMessages(library(tidytext))
+suppressPackageStartupMessages(library(tidyverse))
+suppressPackageStartupMessages(library(tm))
+suppressPackageStartupMessages(library(topicmodels))
 ```
 
 

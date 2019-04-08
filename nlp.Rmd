@@ -21,50 +21,8 @@ Any collection of natural language contains many high-frequency words that obscu
 
 There are a variety of stopword lists. Some may be under-inclusive, removing only the most common parts of speech, while others may be over-inclusive, removing words that should be kept. For example, the word `not` often appears on lists of stopwords but is an important term in doing sentiment analysis using phrases -- *not good* has a difference valence than *[blank] good*.
 
-The `stop_word` data from the `tidytext` package was hand edited to exempt the following list of words:
-
-* against
-* all
-* allow
-* allows
-* always
-* awfully
-* beforehand
-* behind
-* below
-* better
-* big
-* can't
-* cannot
-* cant
-* case
-* cases
-* downwards
-* except
-* gives
-* good
-* great
-* highest
-* hopefully
-* immediate
-* might
-* necessary
-* not
-* nowhere
-* numbers
-* otherwise
-* point
-* serious
-* seriously
-* state
-* states
-* unfortunately
-* value
-* worked
-* working
-* zero
-
-and to add `ect`, `hou` and `enronxgate`, which from data cleansing done originally were found to be email address components from an older email system.
+##################################### UPDATE
+The `stop_word` data from the `tidytext` package to add `ect`, `hou` and `enronxgate`, which from data cleansing done originally were found to be email address components from an older email system.
 
 The `r nrow(n_enron)` mails contail a total of `r nrow(n_words)` words, of which `r nrow(n_dist)` are distinct.
 

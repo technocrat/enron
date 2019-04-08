@@ -23,10 +23,10 @@ suppressPackageStartupMessages(library(topicmodels))
 # load(con)
 # close(con)
 # enron %>% as_tibble(enron)
-# save(enron, file = "enron.Rda")
+# save(enron, file = "data/enron.Rda")
 
 # extract original content (part added by an email)
-load("enron.Rda")
+load("data/enron.Rda")
 e_text <- enron %>% rename(text = lastword) %>% select(text)
 
 # patterns for "textified" newlines, returns, tabs and Notes hypenation
@@ -73,7 +73,7 @@ e_text <- e_text %>% anti_join(stop_words)
 e_top_100_words <- e_text %>% count(word, sort = TRUE) %>% print(n = 100)
 
 # checkpoint
-#save(e_text, file = "e_text.Rda")
+#save(e_text, file = "data/e_text.Rda")
 
 # consider for Rmd
 
@@ -113,7 +113,7 @@ e_vocab_size <- nrow(e_vocab)
 
 # process the graph reduced words
 
-#load("g_enron.Rda")
+#load("data/g_enron.Rda")
 
 g_text <- g_enron %>% rename(text = payload) %>% select(text)
 
@@ -143,7 +143,7 @@ g_text <- g_text %>% anti_join(stop_words)
 g_top_100_words <- g_text %>% count(word, sort = TRUE) %>% filter(n > 100)
 
 # checkpoint
-# save(g_text, file = "g_text.Rda")
+# save(g_text, file = "data/g_text.Rda")
 
 # # consider for Rmd
 
@@ -197,7 +197,7 @@ max_singlets <- max(d_singlets$n)
 
 # checkpoint save vocabulary of core graph; the vocabulary of the entire
 # corpus consists of singletons
-# save(g_vocab, file = "g_vocab.Rda")
+# save(g_vocab, file = "data/g_vocab.Rda")
 
 
 # swtich to tm to create document term matrix
@@ -223,4 +223,9 @@ g_topic_plot <- g_top_terms %>% mutate(term = reorder(term, beta)) %>%
   geom_col(show.legend = FALSE)                   +
   facet_wrap(~ topic, scales = "free")            +
   coord_flip()
+
+# load the three latent sna graphs
+# load("data/glc1.Rda")
+# load("data/glc2.Rda")
+# load("data/glc3.Rda")
 
