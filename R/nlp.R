@@ -284,8 +284,8 @@ g1_dtm = g1_dtm[ui,]
 g1_lda <- LDA(g1_dtm, k = 3, control =  list(seed = 2203))
 g1_topics <- tidy(g1_lda, metrix = "beta")
 
-g1_top_terms <- g1_topics %>% group_by(topic) %>% top_n(50, beta) %>% ungroup() %>%
-  arrange(topic, -beta)
+g1_top_terms <- g1_topics %>% group_by(topic) %>% top_n(50, beta) %>%
+                ungroup() %>% arrange(topic, -beta)
 
 # Use Rmd
 g1_topic_plot <- g1_top_terms %>% mutate(term = reorder(term, beta)) %>%
@@ -306,8 +306,8 @@ g2_dtm = g2_dtm[ui,]
 g2_lda <- LDA(g2_dtm, k = 3, control =  list(seed = 2203))
 g2_topics <- tidy(g2_lda, metrix = "beta")
 
-g2_top_terms <- g2_topics %>% group_by(topic) %>% top_n(50, beta) %>% ungroup() %>%
-  arrange(topic, -beta)
+g2_top_terms <- g2_topics %>% group_by(topic) %>% top_n(50, beta) %>%
+  ungroup() %>% arrange(topic, -beta)
 
 # Use Rmd
 g2_topic_plot <- g2_top_terms %>% mutate(term = reorder(term, beta)) %>%
@@ -328,8 +328,8 @@ g3_dtm = g3_dtm[ui,]
 g3_lda <- LDA(g3_dtm, k = 3, control =  list(seed = 2203))
 g3_topics <- tidy(g3_lda, metrix = "beta")
 
-g3_top_terms <- g3_topics %>% group_by(topic) %>% top_n(50, beta) %>% ungroup() %>%
-  arrange(topic, -beta)
+g3_top_terms <- g3_topics %>% group_by(topic) %>% top_n(50, beta) %>%
+                ungroup() %>% arrange(topic, -beta)
 
 # Use Rmd
 g3_topic_plot <- g3_top_terms %>% mutate(term = reorder(term, beta)) %>%
@@ -337,4 +337,16 @@ g3_topic_plot <- g3_top_terms %>% mutate(term = reorder(term, beta)) %>%
   geom_col(show.legend = FALSE)                   +
   facet_wrap(~ topic, scales = "free")            +
   coord_flip()
+
+
+# Use Rmd
+
+# vocabularies are distinct
+
+g1_2_vocab <- nrow(setdiff(g1_vocab, g2_vocab))/g1_vocab_size
+g1_3_vocab <- nrow(setdiff(g1_vocab, g3_vocab))/g1_vocab_size
+g2_3_vocab <- nrow(setdiff(g2_vocab, g3_vocab))/g2_vocab_size
+g1_2_3_vocab <- nrow(setdiff(g1_vocab, union(g2_vocab,g3_vocab)))/g1_vocab_size
+g2_1_3_vocab <- nrow(setdiff(g2_vocab, union(g1_vocab,g3_vocab)))/g2_vocab_size
+g3_1_2_vocab <- nrow(setdiff(g3_vocab, union(g1_vocab,g2_vocab)))/g2_vocab_size
 
