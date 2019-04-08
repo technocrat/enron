@@ -26,7 +26,7 @@ suppressPackageStartupMessages(library(topicmodels))
 # save(enron, file = "enron.Rda")
 
 # extract original content (part added by an email)
-#load("enron.Rda")
+load("enron.Rda")
 e_text <- enron %>% rename(text = lastword) %>% select(text)
 
 # patterns for "textified" newlines, returns, tabs and Notes hypenation
@@ -57,8 +57,9 @@ data(stop_words)
 # add stops
 
 add_stops <- c("ect", "hou", "enronxgate", "enron", "corp", "company",
-               "enron.com")
-lexicon <- c("user", "user", "user", "user", "user", "user", "user")
+               "enron.com", "houston", "subject", "love")
+lexicon <- c("user", "user", "user", "user", "user", "user", "user", "user",
+             "user","user", "user")
 new_stops <- cbind(add_stops, lexicon)
 colnames(new_stops) <- c("word", "lexicon")
 new_stops <- as_tibble(new_stops)
@@ -72,9 +73,9 @@ e_text <- e_text %>% anti_join(stop_words)
 e_top_100_words <- e_text %>% count(word, sort = TRUE) %>% print(n = 100)
 
 # checkpoint
-# save(e_text, file = "e_text.Rda")
+#save(e_text, file = "e_text.Rda")
 
-# # consider for Rmd
+# consider for Rmd
 
 e_top_words <- e_text %>% count(word, sort = TRUE)  %>%
             filter(n > 1500)                       %>%
@@ -101,7 +102,7 @@ e_zipf <- e_text %>%  count(word, sort = TRUE)  %>%
             scale_x_log10()                         +
             scale_y_log10()                         +
             labs(title="Word frequency of un-reduced Enron corpus",
-                subtitle= "Zipf distribution of approximately 573K words",
+                subtitle= "Zipf distribution of approximately 570K words",
                 caption="Source: Richard Careaga")	+
                 theme_ipsum_rc()
 
@@ -112,7 +113,7 @@ e_vocab_size <- nrow(e_vocab)
 
 # process the graph reduced words
 
-#load("g_egnron.Rda")
+#load("g_enron.Rda")
 
 g_text <- g_enron %>% rename(text = payload) %>% select(text)
 
@@ -139,7 +140,7 @@ g_text <- g_text %>% unnest_tokens(word, text, to_lower = TRUE)
 g_text <- g_text %>% anti_join(stop_words)
 
 # for Rmd
-g_top_100_words <- g_text %>% count(word, sort = TRUE) %>% print(n = 100)
+g_top_100_words <- g_text %>% count(word, sort = TRUE) %>% filter(n > 100)
 
 # checkpoint
 # save(g_text, file = "g_text.Rda")
@@ -198,12 +199,16 @@ max_singlets <- max(d_singlets$n)
 # corpus consists of singletons
 # save(g_vocab, file = "g_vocab.Rda")
 
+
 # swtich to tm to create document term matrix
 
-g_vs  <- VectorSource(g_vocab$word)
+g_vs  <- VectorSource(g_text$word)
 g_corpus <- VCorpus(g_vs)
 g_dtm <- DocumentTermMatrix(g_corpus) # 100% sparse
+
+
 # remove empty rows
+# note: 3 4 6 9 12 tried
 ui = unique(g_dtm$i)
 g_dtm = g_dtm[ui,]
 g_lda <- LDA(g_dtm, k = 3, control =  list(seed = 2203))
