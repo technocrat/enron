@@ -113,8 +113,7 @@ size_of_g_enron_no_external <- nrow(g_enron)
 
 g_enron  <- g_enron                                           %>%
   mutate(sender = str_replace_all(sender, ".enron.com", ""))  %>%
-  mutate(recipient = str_replace_all(recipient,
-                                          ".enron.com", ""))
+  mutate(recipient = str_replace_all(recipient, ".enron.com", ""))
 
 # censor internal group addresses
 
@@ -268,12 +267,6 @@ prominence  <- bind_cols(vertices = vertices, deg = deg,
 prom_with_ctrs <- nrow(prominence)
 
 
-# deg_s   <- scale(deg)   %>% sort(decreasing = TRUE) %>% head(100) 100 >0
-# ldctr_s <- scale(ldctr) %>% sort(decreasing = TRUE) %>% head(100) 48 >0
-# sts_s   <- scale(sts)   %>% sort(decreasing = TRUE) %>% head(100) 34 > 0
-# IQR deg_s   0.6249918
-# IQR ldctr_s 1.017439
-# IQR str_s   0.4197411
 
 # For Rmd
 
@@ -302,7 +295,9 @@ c_enron <- g_enron %>% filter(s_uid %in% top100_s$userid &
 size_of_core <- nrow(c_enron)
 
 net2 <- c_enron %>% select(s_uid, r_uid) %>% netr(.)
+net2_plot <- plot_graph(net2, "Graph of Enron corpus after centrality filter")
 net2 <- neti(net2)
+net2_plot <- plot_graph(net2, "Graph of Enron corpus centrality without isolates")
 
 # 100 vertices and d=2 gives only one cluster
 
@@ -312,6 +307,7 @@ plot(c0.fit,labels=TRUE,rand.eff="receiver")
 
 c1.fit <- ergmm(net2 ~ euclidean(d=2, G=3)+rreceiver,
                 control=ergmm.control(store.burnin=TRUE), seed = 2203)
+# save(c1.fit, file = "c1.fit")
 # charts are interactively triggered
 mcmc.diagnostics(c1.fit)
 plot(c1.fit,pie=TRUE,rand.eff="receiver")
@@ -345,7 +341,22 @@ c_enron <- left_join(c_enron, net2.gc)
 
 #save(c_enron, file = "c_enron.Rda")
 
-# possible use with expanded network
-# c_enron <- c_enron %>% mutate(s.gc = ifelse(gcl > 0, gcl, 0)) %>%
-#                        mutate(r.gc = ifelse(gcl > 0, gcl, 0)
+# subset by _glc
 
+glc1 <- c_enron %>% filter(s_gcl == 1)
+glc2 <- c_enron %>% filter(s_gcl == 2)
+glc3 <- c_enron %>% filter(s_gcl == 3)
+
+# save(glc1, file = "glc1.Rda")
+# save(glc2, file = "glc2.Rda")
+# save(glc3, file = "glc3.Rda")
+
+net_glc1 <- glc1 %>% select(s_uid, r_uid) %>% netr(.) %>% neti(.)
+net_glc2 <- glc2 %>% select(s_uid, r_uid) %>% netr(.) %>% neti(.)
+net_glc3 <- glc3 %>% select(s_uid, r_uid) %>% netr(.) %>% neti(.)
+
+# For Rmd
+
+plot_graph(net_glc1, "Cluster 1")
+plot_graph(net_glc2, "Cluster 2")
+plot_graph(net_glc3, "Cluster 3")
