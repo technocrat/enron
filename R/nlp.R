@@ -1,12 +1,12 @@
 suppressPackageStartupMessages(library(dplyr))
 suppressPackageStartupMessages(library(ggplot2))
+suppressPackageStartupMessages(library(ggthemes))
 suppressPackageStartupMessages(library(hrbrthemes))
 suppressPackageStartupMessages(library(magrittr))
 suppressPackageStartupMessages(library(pander))
 suppressPackageStartupMessages(library(scales))
 suppressPackageStartupMessages(library(slam))
 suppressPackageStartupMessages(library(stringr))
-suppressPackageStartupMessages(library(ggthemes))
 suppressPackageStartupMessages(library(tibble))
 suppressPackageStartupMessages(library(tidyr))
 suppressPackageStartupMessages(library(tidytext))
@@ -17,6 +17,10 @@ suppressPackageStartupMessages(library(topicmodels))
 
 '%out%' <- Negate ('%in%')
 
+# first iteration identified words that occurred only once, no discriminatory
+# power. To be added ti tm:stopwords
+load("singlets.Rda")
+
 # load full Enron dataset
 # not run
 # con <- url("https://s3-us-west-2.amazonaws.com/dslabs.nostromo/enron.Rda")
@@ -25,8 +29,9 @@ suppressPackageStartupMessages(library(topicmodels))
 # enron %>% as_tibble(enron)
 # save(enron, file = "data/enron.Rda")
 
-# extract original content (part added by an email)
+# extract original content
 load("data/enron.Rda")
+
 e_text <- enron %>% rename(text = lastword) %>% select(text)
 
 
@@ -40,9 +45,11 @@ data(stop_words)
 
 add_stops <- c("company", "corp", "ect", "enron", "enron.com",
                "enronxgate", "hou", "houston", "love", "subject")
+add_stops <- append(add_stops, singlets)
 stop_source <- rep("user", length(add_stops))
 supp_stops <- as_tibble(cbind(add_stops, stop_source)) %>%
               rename(word = add_stops, lexicon = stop_source)
+
 my_stopwords <- bind_rows(stop_words, supp_stops)
 
 stop_words <- my_stopwords
@@ -64,10 +71,11 @@ e_text <- e_text %>%  mutate(text = str_replace_all(text, pattern1, " ")) %>%
             mutate(text = str_replace_all(text, "[:blank:]", " "))        %>%
             mutate(text = str_replace_all(text, "[:digit:]", " "))
 
-
-# remove numbers, urls, punctuation and lowercase
+# tokenize
 
 e_text <- e_text %>% unnest_tokens(word, text, to_lower = TRUE)
+
+# remove common words and those that occur only once
 
 e_text <- e_text %>% anti_join(stop_words)
 
@@ -107,6 +115,7 @@ e_zipf <- e_text %>%  count(word, sort = TRUE)  %>%
             labs(title="Word frequency of un-reduced Enron corpus",
                 subtitle= "Zipf distribution of approximately 570K words",
                 caption="Source: Richard Careaga")	+
+                theme_void()                        +
                 theme_ipsum_rc()
 
 # # Enron wide vocabulary
@@ -139,6 +148,7 @@ g_text <- g_text %>% unnest_tokens(word, text, to_lower = TRUE)
 g_text <- g_text %>% anti_join(stop_words)
 
 # for Rmd
+
 g_top_100_words <- g_text %>% count(word, sort = TRUE) %>% filter(n > 100)
 
 # checkpoint
@@ -196,6 +206,7 @@ max_singlets <- max(d_singlets$n)
 
 #checkpoint save vocabulary of core graph; the vocabulary of the entire
 #corpus consists of singletons
+
 # save(g_vocab, file = "data/g_vocab.Rda")
 
 # swtich to tm to create document term matrix
@@ -330,6 +341,7 @@ g3_top_terms <- g3_topics %>% group_by(topic) %>% top_n(50, beta) %>%
                 ungroup() %>% arrange(topic, -beta)
 
 # Use Rmd
+
 g3_topic_plot <- g3_top_terms %>% mutate(term = reorder(term, beta)) %>%
   ggplot(aes(term, beta, fill = factor(topic)))   +
   geom_col(show.legend = FALSE)                   +
@@ -346,3 +358,73 @@ g1_2_3_vocab <- nrow(setdiff(g1_vocab, union(g2_vocab,g3_vocab)))/g1_vocab_size
 g2_1_3_vocab <- nrow(setdiff(g2_vocab, union(g1_vocab,g3_vocab)))/g2_vocab_size
 g3_1_2_vocab <- nrow(setdiff(g3_vocab, union(g1_vocab,g2_vocab)))/g2_vocab_size
 
+g1_text2 <- g1_text  %>% mutate(cluster = "g1")
+g2_text2 <- g2_text  %>% mutate(cluster = "g2")
+g3_text2 <- g3_text  %>% mutate(cluster = "g3")
+
+c_texts <- bind_rows(g1_text2, g2_text2, g3_text2)
+
+occurences <- c_texts       %>%
+  group_by(cluster)         %>%
+  count(word, sort = TRUE)  %>%
+  left_join(c_texts         %>%
+    group_by(cluster)       %>%
+    summarise(total = n())) %>%
+  mutate(freq = n/total)    %>%
+  ungroup()
+
+# 2,402 terms occur only once; no discriminaory power
+# added to stop_words for second pass
+singlets <- occurences %>% filter(n == 1) %>% select(word)
+singlets <- singlets$word
+
+#save(singlets, file = "singlets.Rda")
+
+c_freq <- occurences                    %>%
+            select(cluster, word, freq) %>%
+            spread(cluster, freq)       %>%
+            arrange(g1,g2,g3)
+
+c1_2_plot <- ggplot(c_freq, aes(g1,g2)) +
+             geom_jitter(alpha = 0.1, size = 2.5, width = 0.25, height = 0.25) +
+             geom_text(aes(label = word), check_overlap = TRUE, vjust = 1.5)   +
+             xlab("Graph cluster 1")                                           +
+             ylab("Graph cluster 2")                                           +
+             scale_x_log10()                                                   +
+             scale_y_log10()                                                   +
+             geom_abline(color = "red")                                        +
+             labs(title="Relative word frequency of graph clusters 1 and 2",
+                  subtitle= "Scaled to log10",
+                  caption="Source: Richard Careaga")		    	  				       +
+            theme_void()  	      									                        	 +
+            theme_ipsum_rc()
+
+c1_3_plot <- ggplot(c_freq, aes(g1,g3)) +
+  geom_jitter(alpha = 0.1, size = 2.5, width = 0.25, height = 0.25) +
+  geom_text(aes(label = word), check_overlap = TRUE, vjust = 1.5)   +
+  xlab("Graph cluster 1")                                           +
+  ylab("Graph cluster 3")                                           +
+  scale_x_log10()                                                   +
+  scale_y_log10()                                                   +
+  geom_abline(color = "red")                                        +
+  labs(title="Relative word frequency of graph clusters 1 and 3",
+       subtitle= "Scaled to log10",
+       caption="Source: Richard Careaga")		    	  				        +
+  theme_void()  	      									                        	+
+  theme_ipsum_rc()
+
+c2_3_plot <- ggplot(c_freq, aes(g1,g2)) +
+  geom_jitter(alpha = 0.1, size = 2.5, width = 0.25, height = 0.25) +
+  geom_text(aes(label = word), check_overlap = TRUE, vjust = 1.5)   +
+  xlab("Graph cluster 2")                                           +
+  ylab("Graph cluster 3")                                           +
+  scale_x_log10()                                                   +
+  scale_y_log10()                                                   +
+  geom_abline(color = "red")                                        +
+  labs(title="Relative word frequency of graph clusters 2 and 3",
+       subtitle= "Scaled to log10",
+       caption="Source: Richard Careaga")		    	  				        +
+  theme_void()  	      									                        	+
+  theme_ipsum_rc()
+
+g_ctm <- CTM(g_dtm, k=3)

@@ -205,7 +205,7 @@ total_msg  <- sum(time_series$n)
 ts_plot <- time_series %>% ggplot(., aes(x = date, y = log10(n)))      					    +
   geom_point(size = 0.75) + geom_smooth()                       +
   xlab("Month")                                                 +
-  ylab("Number (log10) of email by month")                      +
+  ylab("Number (log10) of emails by month")                      +
   scale_x_date(date_breaks = "1 month", date_labels = "%Y-%m")  +
   labs(title="Time series chart of reduced Enron corpus",
        subtitle= "January 1, 2000 - December 2, 2001",
