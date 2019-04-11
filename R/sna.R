@@ -75,8 +75,8 @@ quote_s     <-  "'"
 con <- url("https://s3-us-west-2.amazonaws.com/dslabs.nostromo/enron.Rda")
 load(con)
 close(con)
-#save(enron, file = "enron.Rda")
-load("enron.Rda")
+#save(enron, file = "data/enron.Rda")
+load("data/enron.Rda")
 
 # save for Rmd inline
 
@@ -137,11 +137,14 @@ g_enron <- g_enron %>% filter(recipient %out% excluded_users)
 
 size_of_g_enron_no_broadcast <- nrow(g_enron)
 
-# censor emails before 1999-12-31 and after 2001-12-02
+# censor emails before 1999-12-31 and after 2001-12-02 and sort
+# censor empty rows
 
 g_enron <- g_enron            %>%
   filter(date > "1999-12-31") %>%
-  filter(date < "2001-12-03")
+  filter(date < "2001-12-03") %>%
+  filter(length(payload) > 0) %>%
+  arrange(-desc(date))
 
 size_of_g_enron_2000 <- nrow(g_enron)
 
@@ -173,7 +176,7 @@ userid <- bind_cols(users, userid)
 
 unique_users <- nrow(userid)
 
-#save(userid, file = "userid.Rda")
+#save(userid, file = "data/userid.Rda")
 
 # rename userid columns to join to g_enron as sender s_uid
 
@@ -187,7 +190,7 @@ g_enron <- left_join(g_enron, userid)
 
 # for inter-session convenience
 
-# save(g_enron, file = "g_enron.Rda") # "the reduced Enron corpus"
+# save(g_enron, file = "data/g_enron.Rda") # "the reduced Enron corpus"
 
 # remove unneed objects from namespace
 
@@ -195,7 +198,7 @@ rm(con, enron, faux_nl, left_brak, quote_s, recipient, right_brak, sender,
    user_pool, userid, users)
 
 # begin exploratory analysis
-load("g_enron.Rda")
+load("data/g_enron.Rda")
 time_series <- g_enron %>% group_by(date) %>% count() %>% ungroup()
 
 # for Rmd summary
@@ -253,7 +256,7 @@ sts   <- stresscent(net1, rescale = TRUE)
 # cls <- closeness(net1) all 0
 # evc <- evcent(net1, use.eigen = TRUE) net1 not symmetrical
 # bon <- bonpow(net1) Lapack routine dgesv: system is exactly singular:
-# flo <- flowbet(net1) ran 10 minutes without finished
+# flo <- flowbet(net1) ran 10 minutes without finishing
 # flo <- flowbet(net1, cmode = "normflow") ditto
 # harg <- graphcent(net1) all 0
 
@@ -269,7 +272,6 @@ prom_with_ctrs <- nrow(prominence)
 
 
 # For Rmd
-
 
 deg_ldctr <- cor.test(deg,ldctr)  # 0.6786184
 deg_sts   <- cor.test(deg,sts)    # 0.8656096
@@ -290,6 +292,7 @@ well_positioned <- union(union(top25_d,top25_l), top25_s)
 c_enron <- g_enron %>% filter(s_uid %in% top100_s$userid &
                               r_uid %in% top100_s$userid)
 
+
 # for Rmd
 
 size_of_core <- nrow(c_enron)
@@ -301,14 +304,15 @@ net2_plot <- plot_graph(net2, "Graph of Enron corpus centrality without isolates
 
 # 100 vertices and d=2 gives only one cluster
 
-c0.fit <- ergmm(net2 ~ euclidean(d=2))
-mcmc.diagnostics(c0.fit)
-plot(c0.fit,labels=TRUE,rand.eff="receiver")
+# c0.fit <- ergmm(net2 ~ euclidean(d=2))
+# mcmc.diagnostics(c0.fit)
+# plot(c0.fit,labels=TRUE,rand.eff="receiver")
 
 c1.fit <- ergmm(net2 ~ euclidean(d=2, G=3)+rreceiver,
                 control=ergmm.control(store.burnin=TRUE), seed = 2203)
-# save(c1.fit, file = "c1.fit.Rda")
-# charts are interactively triggered
+# save(c1.fit, file = "data/c1.fit.Rda")
+# charts are interactively triggered run and ggsave
+
 mcmc.diagnostics(c1.fit)
 plot(c1.fit,pie=TRUE,rand.eff="receiver")
 plot(c1.fit,what="pmean",rand.eff="receiver")
@@ -339,7 +343,13 @@ net2.gc <- net2.gc %>% rename(r_uid = s_uid, r_gcl = s_gcl)
 
 c_enron <- left_join(c_enron, net2.gc)
 
-#save(c_enron, file = "c_enron.Rda")
+# order chronologically
+
+
+
+#save(c_enron, file = "data/c_enron.Rda")
+
+
 
 # subset by _glc
 
@@ -347,9 +357,9 @@ glc1 <- c_enron %>% filter(s_gcl == 1)
 glc2 <- c_enron %>% filter(s_gcl == 2)
 glc3 <- c_enron %>% filter(s_gcl == 3)
 
-# save(glc1, file = "glc1.Rda")
-# save(glc2, file = "glc2.Rda")
-# save(glc3, file = "glc3.Rda")
+# save(glc1, file = "data/glc1.Rda")
+# save(glc2, file = "data/glc2.Rda")
+# save(glc3, file = "data/glc3.Rda")
 
 net_glc1 <- glc1 %>% select(s_uid, r_uid) %>% netr(.) %>% neti(.)
 net_glc2 <- glc2 %>% select(s_uid, r_uid) %>% netr(.) %>% neti(.)
@@ -360,3 +370,5 @@ net_glc3 <- glc3 %>% select(s_uid, r_uid) %>% netr(.) %>% neti(.)
 plot_graph(net_glc1, "Cluster 1")
 plot_graph(net_glc2, "Cluster 2")
 plot_graph(net_glc3, "Cluster 3")
+
+# end of graph analysis; use c_enron for corpus

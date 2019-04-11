@@ -11,7 +11,7 @@ suppressPackageStartupMessages(library(stringr))
 suppressPackageStartupMessages(library(tibble))
 suppressPackageStartupMessages(library(tidyr))
 suppressPackageStartupMessages(library(tidytext))
-suppressPackageStartupMessages(library(tm))
+suppressPackageStartupg_Messages(library(tm))
 suppressPackageStartupMessages(library(topicmodels))
 
 # convenience function to exclude items from in another list
@@ -20,7 +20,7 @@ suppressPackageStartupMessages(library(topicmodels))
 
 
 # extract original content
-# load("data/enron.Rda")
+load("data/enron.Rda")
 
 e_text <- enron %>% rename(text = lastword) %>% select(text)
 
@@ -248,8 +248,7 @@ g1_text <- g1_text %>%  mutate(text = str_replace_all(text, pattern1, " ")) %>%
   mutate(text = str_replace_all(text, "[:digit:]", " "))        %>%
   unnest_tokens(word, text, to_lower = TRUE)
 
-g1_text <- g1_text
-s%>% anti_join(stop_words)
+g1_text <- g1_text %>% anti_join(stop_words)
 
 g2_text <- g2_text %>%  mutate(text = str_replace_all(text, pattern1, " ")) %>%
   mutate(text = str_replace_all(text, pattern2, " "))           %>%
