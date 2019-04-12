@@ -86,7 +86,7 @@ e_top_words <- e_text %>% count(word, sort = TRUE)  %>%
             filter(n > 1500)                       %>%
             mutate(word = reorder(word,n))         %>%
             ggplot(aes(word,n))       +
-            geom_col(fill = "grey50")  +
+            geom_col(fill = "grey50") +
             xlab(NULL)                +
             coord_flip()              +
             labs(title="Most frequent words in un-reduced Enron corpus",
