@@ -1,5 +1,6 @@
 suppressPackageStartupMessages(library(here))
 suppressPackageStartupMessages(library(dplyr))
+suppressPackageStartupMessages(library(ggdendro))
 suppressPackageStartupMessages(library(ggplot2))
 suppressPackageStartupMessages(library(ggthemes))
 suppressPackageStartupMessages(library(hrbrthemes))
@@ -136,10 +137,16 @@ c_cluster <- hclust(c_mat)
 # label with document names
 c_cluster$labels <- docnames(c_h)
 
-# plot as a dendrogram
-plot(c_cluster, xlab = "", sub = "",
-     main = "Euclidean Distance on Normalized Token Frequency")
+# plot as a dendrogram too clustered with labels
+# plot(c_cluster, xlab = "", sub = "")
+#      main = "Euclidean Distance on Normalized Token Frequency")
 
+c_dg <- as.dendrogram(c_cluster)
+# Define nodePar
+nodePar <- list(lab.cex = 0.6, pch = c(NA, 19),
+                cex = 0.7, col = "blue")
+# Customized plot; remove labels
+plot(c_dg, ylab = "Height", nodePar = nodePar, leaflab = "none")
 # topicmodel
 
 c_lda <- c_dfm %>% dfm_trim(min_termfreq = 25, min_docfreq = 5)
@@ -148,3 +155,15 @@ LDA_fit_3 <- convert(c_lda, to = "topicmodels") %>%
 
 # get top five terms per topic
 get_terms(LDA_fit_3, 50)
+
+set.seed(2208)
+textplot_wordcloud(c_dfm, min_size = 0.5, max_size = 4, min_count = 20,
+                   max_words = 250, color = "darkblue", font = NULL, adjust = 0,
+                   rotation = 0.1,, labelcolor = "gray20", labelsize = 1.5,
+                   labeloffset = 0, fixed_aspect = TRUE, comparison = FALSE)
+
+c_tfidf <- dfm_tfidf(c_dfm, base = 2)
+topfeatures(c_tfidf, n = 100)
+
+#need to filter ect@ect hou love ily enron enron@enronxgate
+need to turn s_gcl into factor
