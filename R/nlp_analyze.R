@@ -157,13 +157,112 @@ LDA_fit_3 <- convert(c_lda, to = "topicmodels") %>%
 get_terms(LDA_fit_3, 50)
 
 set.seed(2208)
-textplot_wordcloud(c_dfm, min_size = 0.5, max_size = 4, min_count = 20,
-                   max_words = 250, color = "darkblue", font = NULL, adjust = 0,
-                   rotation = 0.1,, labelcolor = "gray20", labelsize = 1.5,
+textplot_wordcloud(c_dfm, min_size = 0.5, max_size = 4, min_count = 10,
+                   max_words = 750, color = "darkblue",  adjust = 0,
+                   random_order = TRUE, random_color = TRUE, rotation = 0.1,
+                   labelcolor = "gray20", labelsize = 1.5,
                    labeloffset = 0, fixed_aspect = TRUE, comparison = FALSE)
 
 c_tfidf <- dfm_tfidf(c_dfm, base = 2)
 topfeatures(c_tfidf, n = 100)
 
-#need to filter ect@ect hou love ily enron enron@enronxgate
-need to turn s_gcl into factor
+c_msl <- (textstat_readability(c_corpus, "meanSentenceLength",
+                     remove_hyphens = TRUE,
+                     min_sentence_length = 1, max_sentence_length = 10000,
+                     intermediate = FALSE))
+summary(c_msl) # median 7.7 whether or not censor long sentences
+
+
+
+# c_topics <- topics(LDA_fit_3) # topics by index
+# length(c_topics) # 9938
+# # c_enron is only 2349
+
+set.seed(2203)
+k <- 3
+c_tfidf_1 <- dfm_subset(c_tfidf, s_gcl == 1)
+km1_out <- stats::kmeans(c_tfidf_1, centers = k)
+km1_out$iter
+colnames(km1_out$centers) <- featnames(c_tfidf_1)
+for (i in 1:k) { # loop for each cluster
+  cat("CLUSTER", i, "\n")
+  cat("Top 10 words:\n") # 10 most important terms at the centroid
+  print(head(sort(km1_out$centers[i, ], decreasing = TRUE), n = 10))
+  cat("\n")
+  cat("Graph Cluster 1 Documents Classified: \n") # extract essays classified
+  print(docnames(c_tfidf_1)[km1_out$cluster == i])
+  cat("\n")
+}
+
+set.seed(2203)
+k <- 3
+c_tfidf_2 <- dfm_subset(c_tfidf, s_gcl == 2)
+km2_out <- stats::kmeans(c_tfidf_2, centers = k)
+km2_out$iter
+colnames(km2_out$centers) <- featnames(c_tfidf_2)
+for (i in 1:k) { # loop for each cluster
+  cat("CLUSTER", i, "\n")
+  cat("Top 10 words:\n") # 10 most important terms at the centroid
+  print(head(sort(km2_out$centers[i, ], decreasing = TRUE), n = 10))
+  cat("\n")
+  cat("Graph Cluster 2 Documents Classif: \n") # extract essays classified
+  print(docnames(c_tfidf_2)[km2_out$cluster == i])
+  cat("\n")
+}
+
+set.seed(2203)
+k <- 3
+c_tfidf_3 <- dfm_subset(c_tfidf, s_gcl == 3)
+km3_out <- stats::kmeans(c_tfidf_3, centers = k)
+km3_out$iter
+colnames(km3_out$centers) <- featnames(c_tfidf_3)
+for (i in 1:k) { # loop for each cluster
+  cat("CLUSTER", i, "\n")
+  cat("Top 10 words:\n") # 10 most important terms at the centroid
+  print(head(sort(km3_out$centers[i, ], decreasing = TRUE), n = 10))
+  cat("\n")
+  cat("Graph Cluster 3 Documents: \n") # extract essays classified
+  print(docnames(c_tfidf_3)[km3_out$cluster == i])
+  cat("\n")
+}
+
+
+# no subsetting
+set.seed(2203)
+k <- 3
+km0_out <- stats::kmeans(c_tfidf, centers = k)
+km0_out$iter
+colnames(km0_out$centers) <- featnames(c_tfidf)
+for (i in 1:k) { # loop for each cluster
+  cat("CLUSTER", i, "\n")
+  cat("Top 10 words:\n") # 10 most important terms at the centroid
+  print(head(sort(km0_out$centers[i, ], decreasing = TRUE), n = 10))
+  cat("\n")
+  cat("Graph Cluster 3 Documents: \n") # extract essays classified
+  print(docnames(c_tfidxcf)[km0_out$cluster == i])
+  cat("\n")
+}
+
+ks_t <- enframe(ks) %>% arrange(-desc(name)) %>% rename(docid = name, k = value)
+
+# kmean Pearson's
+kmeans_cor <- cor.test(q_enron$s_gcl, q_enron$k)
+q0_enron <- left_join(c_enron, ks_t, by = "docid" )
+
+ks1_t <- enframe(ks) %>% arrange(-desc(name)) %>% rename(docid = name, k = value)
+ks2_t <- enframe(ks) %>% arrange(-desc(name)) %>% rename(docid = name, k = value)
+ks3_t <- enframe(ks) %>% arrange(-desc(name)) %>% rename(docid = name, k = value)
+
+q1_enron <- c_enron %>% filter(docid %in% ks1_t) %>%
+  left_join(c_enron, ks1_t, by = "docid" )
+q2_enron <- c_enron %>% filter(docid %in% ks2_t) %>%
+  left_join(c_enron, ks2_t, by = "docid")
+q3_enron <- c_enron %>% filter(docid %in% ks3_t) %>%
+  left_join(c_enron, ks3_t, by = "docid")
+
+kmeans1_cor <- cor.test(q_enron1$s_gcl, q1_enron$k)
+kmeans2_cor <- cor.test(q_enron2$s_gcl, q2_enron$k)
+kmeans3_cor <- cor.test(q_enron3$s_gcl, q3_enron$k)
+
+
+

@@ -427,4 +427,5 @@ c2_3_plot <- ggplot(c_freq, aes(g1,g2)) +
 # topicmodels::CTM has zero documentation
 # g_ctm <- CTM(g_dtm, k=3)
 
-
+# Mon Apr 15 14:21:08 2019 ------------------------------
+# Giving up on NLP, except may save clusters for network attributes

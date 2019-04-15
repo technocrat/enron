@@ -320,7 +320,6 @@ plot(c1.fit,what="cloud",rand.eff="receiver")
 plot(c1.fit,what="density",rand.eff="receiver")
 plot(c1.fit,what=5,rand.eff="receiver")
 summary(c1.fit)
-
 # Goodnet of fit
 
 c1.gof <- gof(c1.fit)
@@ -371,4 +370,26 @@ plot_graph(net_glc1, "Cluster 1")
 plot_graph(net_glc2, "Cluster 2")
 plot_graph(net_glc3, "Cluster 3")
 
+red.vs.core <- cor.test(triad.census(net1), triad.census(net2)) #same
+
 # end of graph analysis; use c_enron for corpus
+
+# latent has been deprecated in favor of euclidian
+c2.fit <- ergmm(net2 ~ euclidian(d=2, G=3),  verbose = TRUE, seed = 2203)
+# save(c2.fit, file = "data/c2.fit.Rda")
+# charts are interactively triggered run and ggsave
+
+mcmc.diagnostics(c1.fit)
+plot(c2fit,pie=TRUE) #,rand.eff="receiver")
+plot(c2.fit,what="pmean",rand.eff="receiver")
+plot(c2.fit,what="cloud",rand.eff="receiver")
+plot(c2.fit,what="density",rand.eff="receiver")
+plot(c2.fit,what=5,rand.eff="receiver")
+summary(c2.fit)
+# Goodnet of fit
+
+c2.gof <- gof(c2.fit)
+c2.gof.plot <- plot(c2.gof, plotlogodds=TRUE)
+
+# Mon Apr 15 14:21:08 2019 ------------------------------
+# Giving up on NLP, except may save clusters for network attributes
