@@ -59,9 +59,31 @@ plot_graph <- function(x,y) {
     labs(title="Graph of reduced Enron corpus",
          subtitle= y,
          caption="Source: Richard Careaga")			  +
-    theme_ipsum_rc()									            +
+    theme_ipsum_rc()                              +
+    theme(legend.position = "none")
+}
+
+# x is a graph object, y is (possibly empty) string
+
+# x is a graph object, y is (possibly empty) string
+
+plot_graph_w_nodes <- function(x,y) {
+  ggplot(x, aes(x, y, xend = xend, yend = yend))  +
+    geom_edges(size = 0.25, color = "gray")       +
+    geom_nodes(size = 0.75, color = "steelblue")  +
+    geom_nodetext(aes(label = vertex.names,
+                      color = sts))               +
+  scale_colour_gradient(low = "white",
+                        high = "black")           +
+  labs(title="Graph of reduced Enron corpus",
+         subtitle= y,
+         caption="Source: Richard Careaga")			  +
+    theme_ipsum_rc()		                        	+
+    guides(color = FALSE)                         +
     theme_void()
 }
+
+# end functions
 
 # email recipient cleanser patterns
 
@@ -70,11 +92,10 @@ left_brak	  <-	"\\["
 right_brak	<-	"\\]"
 quote_s     <-  "'"
 
-
 # load source data
-con <- url("https://s3-us-west-2.amazonaws.com/dslabs.nostromo/enron.Rda")
-load(con)
-close(con)
+# con <- url("https://s3-us-west-2.amazonaws.com/dslabs.nostromo/enron.Rda")
+# load(con)
+# close(con)
 #save(enron, file = "data/enron.Rda")
 load("data/enron.Rda")
 
@@ -292,70 +313,147 @@ well_positioned <- union(union(top25_d,top25_l), top25_s)
 c_enron <- g_enron %>% filter(s_uid %in% top100_s$userid &
                               r_uid %in% top100_s$userid)
 
+net_c <- c_enron %>%  select(s_uid, r_uid) %>% netr(.) %>% neti(.)
+net_c_plot <- plot_graph(net_c, "Graph of Enron corpus after 100 sts filter")
+
+
+p_enron <- g_enron %>% filter(s_uid %in% well_positioned$userid &
+                                r_uid %in% well_positioned$userid)
+
+net_p <- p_enron %>%  select(s_uid, r_uid) %>% netr(.) %>% neti(.)
+net_p_plot <- plot_graph(net_p, "Graph of Enron corpus after degree filter")
+
+d_enron <- g_enron %>% filter(s_uid %in% top25_d$userid &
+                              r_uid %in% top25_d$userid)
+
+net_d <- d_enron %>%  select(s_uid, r_uid) %>% netr(.) %>% neti(.)
+net_d_plot <- plot_graph(net_d, "Graph of Enron corpus after degree filter")
+
+l_enron <- g_enron %>% filter(s_uid %in% top25_l$userid &
+                                r_uid %in% top25_l$userid)
+
+
+net_l <- d_enron %>%  select(s_uid, r_uid) %>% netr(.) %>% neti(.)
+net_l_plot <- plot_graph(net_l, "Graph of Enron corpus after loadcent filter")
+
+s_enron <- g_enron %>% filter(s_uid %in% top25_s$userid &
+                                r_uid %in% top25_s$userid)
+
+net_s <- s_enron %>%  select(s_uid, r_uid) %>% netr(.) %>% neti(.)
+net_s_plot <- plot_graph(net_s, "Graph of Enron corpus after stresscent filter")
+
+top25_i <- intersect(intersect(top25_d,top25_l), top25_s)
+
+i_enron <- g_enron %>% filter(s_uid %in% top25_i$userid &
+                                r_uid %in% top25_i$userid)
+
+net_i <- i_enron %>%  select(s_uid, r_uid) %>% netr(.) %>% neti(.)
+net_i_plot <- plot_graph(net_i, "Graph of Enron corpus after filter intersection")
+
+top25_u <- union(union(top25_d,top25_l), top25_s)
+
+u_enron <- g_enron %>% filter(s_uid %in% top25_u$userid &
+                                r_uid %in% top25_u$userid)
+
+net_u <- u_enron %>%  select(s_uid, r_uid) %>% netr(.) %>% neti(.)
+net_u_plot <- plot_graph(net_u, "Graph of Enron corpus after filter union")
+
+
+# latent from union
+
+u.fit <- ergmm(net_u ~ euclidean(d=2, G=3)+rreceiver,
+               control=ergmm.control(store.burnin=TRUE), seed = 2203)
+mcmc.diagnostics(u.fit)
+plot(u.fit,pie=TRUE,rand.eff="receiver")
+plot(u.fit,u.at="pmean",rand.eff="receiver")
+plot(u.fit,u.at="cloud",rand.eff="receiver")
+plot(u.fit,u.at="density",rand.eff="receiver")
+plot(u.fit,u.at=5,rand.eff="receiver")
+summary(u.fit)
+
+u.gof <- gof(u.fit)
+u.gof.plot <- plot(u.gof, plotlogodds=TRUE)
 
 # for Rmd
 
 size_of_core <- nrow(c_enron)
 
-net2 <- c_enron %>% select(s_uid, r_uid) %>% netr(.)
 net2_plot <- plot_graph(net2, "Graph of Enron corpus after centrality filter")
 net2 <- neti(net2)
 net2_plot <- plot_graph(net2, "Graph of Enron corpus centrality without isolates")
 
-# 100 vertices and d=2 gives only one cluster
-
-# c0.fit <- ergmm(net2 ~ euclidean(d=2))
-# mcmc.diagnostics(c0.fit)
-# plot(c0.fit,labels=TRUE,rand.eff="receiver")
-
-c1.fit <- ergmm(net2 ~ euclidean(d=2, G=3)+rreceiver,
+net_p <- p_enron %>%  select(s_uid, r_uid) %>% netr(.) %>% neti(.)
+p.fit <- ergmm(net_p~ euclidean(d=2, G=3)+rreceiver,
                 control=ergmm.control(store.burnin=TRUE), seed = 2203)
-# save(c1.fit, file = "data/c1.fit.Rda")
-# charts are interactively triggered run and ggsave
+
+
+
+# both sender and receiver central
+
+c.fit <- ergmm(net_c ~ euclidean(d=2, G=3)+rreceiver,
+                control=ergmm.control(store.burnin=TRUE), seed = 2203)
+mcmc.diagnostics(c.fit)
+plot(c.fit,pie=TRUE,rand.eff="receiver")
+plot(c.fit,pie=TRUE, what="pmean",rand.eff="sender")
+plot(c.fit,what="cloud",rand.eff="receiver")
+plot(c.fit,what="density",rand.eff="receiver")
+plot(c.fit,what=5,rand.eff="receiver")
+summary(c.fit)
+c.gof <- gof(c.fit)
+par(mfrow=c(1,3))
+par(oma=c(0.5,2,1,0.5))
+plot(c.gof)
+plot(c.gof, plotlogodds=TRUE)
+
+# either sender or receiver central
+
+c1_enron <- g_enron %>% filter(s_uid %in% top100_s$userid |
+                                r_uid %in% top100_s$userid)
+
+net_c1 <- c1_enron %>%  select(s_uid, r_uid) %>% netr(.) %>% neti(.)
+# c1.fit <- ergmm(net_c1 ~ euclidean(d=2, G=3)+rreceiver,
+#                control=ergmm.control(store.burnin=TRUE), seed = 2203)
+# save("data/c1.fit.Rda")
+net_c1_plot <- plot_graph(net_c1, "Graph of Enron corpus central sender or receiver")
 
 mcmc.diagnostics(c1.fit)
 plot(c1.fit,pie=TRUE,rand.eff="receiver")
-plot(c1.fit,what="pmean",rand.eff="receiver")
+plot(c1.fit,pie=TRUE, what="pmean",rand.eff="receiver")
 plot(c1.fit,what="cloud",rand.eff="receiver")
 plot(c1.fit,what="density",rand.eff="receiver")
 plot(c1.fit,what=5,rand.eff="receiver")
 summary(c1.fit)
 # Goodnet of fit
-
+par(mfrow=c(1,3))
+par(oma=c(0.5,2,1,0.5))
+plot(c1.gof)
 c1.gof <- gof(c1.fit)
-c1.gof.plot <- plot(c1.gof, plotlogodds=TRUE)
+plot(c1.gof, plotlogodds=TRUE)
 
 #Map userids to clusters
 
-net2.gc <-  enframe(c1.fit$mkl$Z.K)             %>%
-            select(-name)                       %>%
+c1.gc <-  enframe(c1.fit$mkl$Z.K) %>%
+            select(-name)         %>%
             rename(gcl = value)
 
-net2.gc <- bind_cols(top100_s, net2.gc)
+c1.gc <- bind_cols(top100_s, c1.gc)
 
-net2.gc <- net2.gc %>% rename(s_uid = userid, s_gcl = gcl)
-
-
-c_enron <- left_join(c_enron, net2.gc)
-
-net2.gc <- net2.gc %>% rename(r_uid = s_uid, r_gcl = s_gcl)
-
-c_enron <- left_join(c_enron, net2.gc)
-
-# order chronologically
+c1.gc <- c1.gc %>% rename(s_uid = userid, s_gcl = gcl)
 
 
+c1_enron <- left_join(c1_enron, c1.gc)
 
-#save(c_enron, file = "data/c_enron.Rda")
+c1.gc <- c1.gc %>% rename(r_uid = s_uid, r_gcl = s_gcl)
 
+c1_enron <- left_join(c1_enron, c1.gc)
 
+#save(c1_enron, file = "data/c_enron.Rda")
 
 # subset by _glc
 
-glc1 <- c_enron %>% filter(s_gcl == 1)
-glc2 <- c_enron %>% filter(s_gcl == 2)
-glc3 <- c_enron %>% filter(s_gcl == 3)
-
+glc1 <- c1_enron %>% filter(s_gcl == 1)
+glc2 <- c1_enron %>% filter(s_gcl == 2)
+glc3 <- c1_enron %>% filter(s_gcl == 3)
 # save(glc1, file = "data/glc1.Rda")
 # save(glc2, file = "data/glc2.Rda")
 # save(glc3, file = "data/glc3.Rda")
@@ -366,30 +464,27 @@ net_glc3 <- glc3 %>% select(s_uid, r_uid) %>% netr(.) %>% neti(.)
 
 # For Rmd
 
-plot_graph(net_glc1, "Cluster 1")
-plot_graph(net_glc2, "Cluster 2")
-plot_graph(net_glc3, "Cluster 3")
 
-red.vs.core <- cor.test(triad.census(net1), triad.census(net2)) #same
 
-# end of graph analysis; use c_enron for corpus
 
-# latent has been deprecated in favor of euclidian
-c2.fit <- ergmm(net2 ~ euclidian(d=2, G=3),  verbose = TRUE, seed = 2203)
-# save(c2.fit, file = "data/c2.fit.Rda")
-# charts are interactively triggered run and ggsave
+# end of graph analysis; use c1_enron for corpus
 
-mcmc.diagnostics(c1.fit)
-plot(c2fit,pie=TRUE) #,rand.eff="receiver")
-plot(c2.fit,what="pmean",rand.eff="receiver")
-plot(c2.fit,what="cloud",rand.eff="receiver")
-plot(c2.fit,what="density",rand.eff="receiver")
-plot(c2.fit,what=5,rand.eff="receiver")
-summary(c2.fit)
-# Goodnet of fit
 
-c2.gof <- gof(c2.fit)
-c2.gof.plot <- plot(c2.gof, plotlogodds=TRUE)
+m <-  as.matrix(stresscent(net_glc1))
+m <- m + 2
+sts <- round(log(m),1)
+net_glc1%v%"sts" <- sts[,1]
+plot_graph_w_nodes(net_glc1, "Cluster 1")
 
-# Mon Apr 15 14:21:08 2019 ------------------------------
-# Giving up on NLP, except may save clusters for network attributes
+m <-  as.matrix(stresscent(net_glc2))
+m <- m + 2
+sts <- round(log(m),1)
+net_glc2%v%"sts" <- sts[,1]
+plot_graph_w_nodes(net_glc2, "Cluster 2")
+
+
+m <-  as.matrix(stresscent(net_glc3))
+m <- m + 2
+sts <- round(log(m),1)
+net_glc3%v%"sts" <- sts[,1]
+plot_graph_w_nodes(net_glc3, "Cluster 3")

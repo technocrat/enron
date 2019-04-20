@@ -264,5 +264,7 @@ kmeans1_cor <- cor.test(q_enron1$s_gcl, q1_enron$k)
 kmeans2_cor <- cor.test(q_enron2$s_gcl, q2_enron$k)
 kmeans3_cor <- cor.test(q_enron3$s_gcl, q3_enron$k)
 
+# Mon Apr 15 14:21:08 2019 ------------------------------
+# Giving up on NLP, except may save clusters for network attributes
 
 
