@@ -404,12 +404,11 @@ net_i_plot <- plot_graph(net_i, "Graph of Enron corpus, stresscent intersection"
 #                control=ergmm.control(store.burnin=TRUE), seed = 2203)
 # save("data/c1.fit.Rda")
 load("data/c1.fit.Rda")
-pdf("img/c1mcmcdiagnostics.pdf", onefile=FALSE)
+pdf("img/c1mcmcdiagnostics.pdf", onefile=TRUE)
 mcmc.diagnostics(c1.fit)
 dev.off()
 
 plot(c1.fit,pie=TRUE,rand.eff="receiver")
-
 summary(c1.fit)
 
 # Goodnet of fit
@@ -775,6 +774,7 @@ The intersection graph object, prior to modeling, appeared as follows:
 ```{r, echo = FALSE}
 net_i_plot
 ```
+
 The `latent::ergmm` model was applied to the intersection graph.
 
     c1.fit <- ergmm(net_c1 ~ euclidean(d=2, G=3)+rreceiver,
@@ -782,34 +782,34 @@ The `latent::ergmm` model was applied to the intersection graph.
 
 The function fits the graph to a latent network model using a Markov chain Monte Carlo algorithm. The resulting graph visualization is
 
-```{r}
-plot(c1.fit,pie=TRUE,rand.eff="receiver")
+``````{r, include=TRUE, fig.align="center", fig.cap=c("Latent graph based on stresscent"), echo=FALSE}
+knitr::include_graphics("img/c1.latent.plot.png")
 ```
 
 and identifies three clusters. Some nodes show pie slices indicating the relative probabilities of belonging to one of the three clusters. The diagnostics include an intercept estimate, confidence intervals, and a p-value, all of which are satisfactory.
 
 ```{r}
-pander::pander(summary(c1.fit))
+summary(c1.fit)
 ```
 
 Convergence of the model is shown by diagnostic plots of autocorrelation.
 
 ```{r, include=TRUE, fig.align="center", fig.cap=c("MCMC Diagnostics, Part 1"), echo=FALSE}
-knitr::include_graphics("img/c1.mcmcpt1.pdf")
+knitr::include_graphics("img/c1.mcmcpt1.png")
 ```
 
 ```{r, include=TRUE, fig.align="center", fig.cap=c("MCMC Diagnostics, Part 2"), echo=FALSE}
-knitr::include_graphics("img/c1.mcmcpt1.pdf")
+knitr::include_graphics("img/c1.mcmcpt2.png")
 ```
 
 ```{r, include=TRUE, fig.align="center", fig.cap=c("MCMC Diagnostics, Part 3"), echo=FALSE}
-knitr::include_graphics("img/c1.mcmcpt1.pdf")
+knitr::include_graphics("img/c1.mcmcpt3.png")
 ```
 
 Goodness of fit diagnostics for in-degree, out-degree and geodesic distsance are provided in tabular format and plots
 
 ```{r}
-pander::pander(c1.gof)
+c1.gof
 ```
 
 ```{r}
@@ -1035,6 +1035,7 @@ pander::pander(sessinfo)
 		# par(mfrow=c(1,3))
 		# par(oma=c(0.5,2,1,0.5))
 		# plot(c.gof, plotlogodds=TRUE)
+
 ```{r}
 # urls
 ```
