@@ -3,8 +3,9 @@ title: "Social Network Analysis of the Enron Corpus"
 author: Richard Careaga
 date: April 25, 2019
 output: hrbrthemes::ipsum_pdf
----
+urlcolor: blue
 
+---
 # urlcolor = blue????
 
 ```{r setup, include=FALSE}
@@ -391,7 +392,6 @@ c_enron <- gclean_enron %>% filter(s_uid %in% top100_s$userid &
 size_of_core <- nrow(c_enron)
 
 
-
 # either sender or receiver central
 
 c1_enron <- gclean_enron %>% filter(s_uid %in% top100_s$userid |
@@ -404,7 +404,7 @@ net_i_plot <- plot_graph(net_i, "Graph of Enron corpus, stresscent intersection"
 #                control=ergmm.control(store.burnin=TRUE), seed = 2203)
 # save("data/c1.fit.Rda")
 load("data/c1.fit.Rda")
-pdf("img/c1_mcmc_diagnostics.pdf", onefile=FALSE)
+pdf("img/c1mcmcdiagnostics.pdf", onefile=FALSE)
 mcmc.diagnostics(c1.fit)
 dev.off()
 
@@ -493,7 +493,7 @@ The goal of this paper is to illustrate techniques of social network analysis in
 
 # Background
 
-> In times of political turmoil, events can move from impossible to inevitable without even passing through improbable. [Anatole Kalesky]
+> *In times of political turmoil, events can move from impossible to inevitable without even passing through improbable.* [Anatole Kalesky]
 
 [Enron Corp.] and its affiliates were engaged in energy-related businesses, as described in its [Annual Report on Form 10-K for the year ended December 31, 2000].
 
@@ -699,11 +699,13 @@ The top 25 users ranked by `degree` are:
 kable(top25_d) %>% kable_styling(bootstrap_options = "striped", full_width = F, position = "center")
 ```
 
+
 A graph of these users as a sender or receiver is shown below.
 
 ```{r, echo=FALSE}
 net_d_plot
 ```
+
 
 ### Load centrality
 
@@ -718,10 +720,10 @@ A graph of these users as a sender or receiver is shown below.
 ```{r, echo=FALSE}
 net_l_plot
 ```
+
 ### Stress centrality
 
 The top 25 users ranked by `stress centrality` are:
-
 
 ```{r, echo=FALSE}
 kable(top25_s) %>%   kable_styling(bootstrap_options = "striped", full_width = F, position = "center")
@@ -739,7 +741,6 @@ net_c_plot
 Which of these measures to privilege is not clear. They each present different perspectives of the relative importance of each user in the network, based on different criteria, but none presents an obvious candidate by itself. They are, however, moderately well correlated at high degrees of significance.
 
 ```{r, echo=FALSE}
-#---------------------------------------------------------------------
 pander::pander(deg_ldctr)
 #kable_styling(bootstrap_options = "striped", full_width = F, position = "center")
 pander::pander(deg_sts)# %>%
@@ -774,12 +775,62 @@ The intersection graph object, prior to modeling, appeared as follows:
 ```{r, echo = FALSE}
 net_i_plot
 ```
+The `latent::ergmm` model was applied to the intersection graph.
 
+    c1.fit <- ergmm(net_c1 ~ euclidean(d=2, G=3)+rreceiver,
+          control=ergmm.control(store.burnin=TRUE), seed = 2203)
 
+The function fits the graph to a latent network model using a Markov chain Monte Carlo algorithm. The resulting graph visualization is
 
+```{r}
+plot(c1.fit,pie=TRUE,rand.eff="receiver")
+```
 
+and identifies three clusters. Some nodes show pie slices indicating the relative probabilities of belonging to one of the three clusters. The diagnostics include an intercept estimate, confidence intervals, and a p-value, all of which are satisfactory.
 
+```{r}
+pander::pander(summary(c1.fit))
+```
 
+Convergence of the model is shown by diagnostic plots of autocorrelation.
+
+```{r, include=TRUE, fig.align="center", fig.cap=c("MCMC Diagnostics, Part 1"), echo=FALSE}
+knitr::include_graphics("img/c1.mcmcpt1.pdf")
+```
+
+```{r, include=TRUE, fig.align="center", fig.cap=c("MCMC Diagnostics, Part 2"), echo=FALSE}
+knitr::include_graphics("img/c1.mcmcpt1.pdf")
+```
+
+```{r, include=TRUE, fig.align="center", fig.cap=c("MCMC Diagnostics, Part 3"), echo=FALSE}
+knitr::include_graphics("img/c1.mcmcpt1.pdf")
+```
+
+Goodness of fit diagnostics for in-degree, out-degree and geodesic distsance are provided in tabular format and plots
+
+```{r}
+pander::pander(c1.gof)
+```
+
+```{r}
+plot(c1.gof, plotlogodds=TRUE)
+```
+
+The three clusters can be examined separately.
+
+```{r}
+clust1_plot
+```
+
+```{r}
+clust2_plot
+```
+
+```{r}
+clust3_plot
+```
+
+TTKTKTKTKTK>T
 
 # Credits
 
@@ -789,15 +840,15 @@ Convergence Diagnosis and Output Analysis for MCMC, R News, vol 6,
 
 Francois Briatte (2016). ggnetwork: Geometries to Plot Networks with
 'ggplot2'. R package version 0.5.1.
-(https://CRAN.R-project.org/package=ggnetwork)
+https://CRAN.R-project.org/package=ggnetwork
 
 Kirill Müller (2017). here: A Simpler Way to Find Your Files. R
-package version 0.1. [https://CRAN.R-project.org/package=here]
+package version 0.1. https://CRAN.R-project.org/package=here
 
 Handcock M, Hunter D, Butts C, Goodreau S, Krivitsky P, Morris M
 (2018). _ergm: Fit, Simulate and Diagnose Exponential-Family Models for
-Networks_. The Statnet Project [http://www.statnet.org>]. R
-package version 3.9.4, <URL: https://CRAN.R-project.org/package=ergm>.
+Networks_. The Statnet Project http://www.statnet.org. R
+package version 3.9.4, https://CRAN.R-project.org/package=ergm
 
 Hunter D, Handcock M, Butts C, Goodreau S, Morris M (2008). “ergm: A
 Package to Fit, Simulate and Diagnose Exponential-Family Models for
@@ -831,44 +882,42 @@ Friedrich Leisch and Roger D. Peng, editors, Implementing Reproducible Computati
 Hall/CRC. ISBN 978-1466561595
 
 Krivitsky P, Handcock M (2018). _latentnet: Latent Position and Cluster
-Models for Statistical Networks_. The Statnet Project (
-http://www.statnet.org). R package version 2.9.0, <URL:
-https://CRAN.R-project.org/package=latentnet>.
+Models for Statistical Networks_. The Statnet Project 
+http://www.statnet.org. R package version 2.9.0,
+https://CRAN.R-project.org/package=latentnet
 
 Krivitsky PN, Handcock MS (2008). “Fitting position latent cluster
 models for social networks with latentnet.” _Journal of Statistical
 Software_, *24*(5).
 
 Butts C (2015). _network: Classes for Relational Data_. The Statnet
-Project (<URL: http://www.statnet.org>). R package version 1.13.0.1,
-<URL: https://CRAN.R-project.org/package=network>.
+Project http://www.statnet.org  R package version 1.13.0.1,
+https://CRAN.R-project.org/package=network
 
 Butts C (2008). “network: a Package for Managing Relational Data in R.”
 _Journal of Statistical Software_, *24*(2). 
-[http://www.jstatsoft.org/v24/i02/paper]
+http://www.jstatsoft.org/v24/i02/paper
 
 Gergely Daróczi and Roman Tsegelskyi (2018). pander: An R 'Pandoc'
 Writer. R package version 0.6.3.
-[https://CRAN.R-project.org/package=pander]
+https://CRAN.R-project.org/package=pander
 
 Carter T. Butts (2016). sna: Tools for Social Network Analysis. R
-package version 2.4. [https://CRAN.R-project.org/package=sna]
+package version 2.4. https://CRAN.R-project.org/package=sna
 
 Krivitsky P (2019). _statnet.common: Common R Scripts and Utilities
 Used by the Statnet Project Software_. The Statnet Project 
-[http://www.statnet.org]. R package version 4.2.0], 
-[https://CRAN.R-project.org/package=statnet.common]
+http://www.statnet.org. R package version 4.2.0, 
+https://CRAN.R-project.org/package=statnet.common
 
 Silge J, Robinson D (2016). “tidytext: Text Mining and Analysis Using
 Tidy Data Principles in R.” _JOSS_, *1*(3). doi: 10.21105/joss.00037
-(URL: http://doi.org/10.21105/joss.00037), <URL:
-http://dx.doi.org/10.21105/joss.00037>.
+http://doi.org/10.21105/joss.00037, 
+http://dx.doi.org/10.21105/joss.00037
 
 Hadley Wickham (2017). tidyverse: Easily Install and Load the
 'Tidyverse'. R package version 1.2.1.
 https://CRAN.R-project.org/package=tidyverse
-
-
 
 # Session Information
 ```{r}
