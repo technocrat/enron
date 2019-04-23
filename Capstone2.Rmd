@@ -2,11 +2,11 @@
 title: "Social Network Analysis of the Enron Corpus"
 author: Richard Careaga
 date: April 25, 2019
+email: public@careaga.net
 output: hrbrthemes::ipsum_pdf
 urlcolor: blue
 
 ---
-# urlcolor = blue????
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE,  dev = "cairo_pdf", message = FALSE, warning = FALSE, cache = TRUE)
@@ -27,8 +27,13 @@ suppressPackageStartupMessages(library(pander))
 suppressPackageStartupMessages(library(sna))
 suppressPackageStartupMessages(library(statnet))
 suppressPackageStartupMessages(library(statnet.common))
+suppressPackageStartupMessages(library(statnet.common))
+suppressPackageStartupMessages(library(stringr))
 suppressPackageStartupMessages(library(tidytext))
 suppressPackageStartupMessages(library(tidyverse))
+
+# load for NLP
+data(stop_words)
 
 # make reproducible
 
@@ -136,6 +141,7 @@ g_enron <- enron 								                		  %>%
 
 # restrict to single recipients
 g_enron <- g_enron %>% filter(tosctn == 1 & ccsctn == 0)
+singlets <- nrow(g_enron)
 
 # censor non-enron addresses and reduce fields
 
@@ -478,9 +484,66 @@ sts <- round(log(m),1)
 net3%v%"sts" <- sts[,1]
 clust3_plot <- plot_graph_w_nodes(net3, "Cluster 3")
 
-# End of program
+# short NLP analysis
+           
+t_all <- gclean_enron                                     %>% 
+  select(payload)                                         %>% 
+  rename(text = payload)                                  %>%
+  mutate(text = str_replace_all(text, "[:punct:]", " "))  %>%
+  mutate(text = str_replace_all(text, "[:blank:]", " "))  %>%
+  mutate(text = str_replace_all(text, "[:digit:]", " "))  %>%
+  unnest_tokens(word, text, to_lower = TRUE)              %>% 
+  anti_join(stop_words)                                   %>%
+  distinct(word)
+
+t1 <- g1                                                  %>% 
+  select(payload)                                         %>% 
+  rename(text = payload)                                  %>%
+  mutate(text = str_replace_all(text, "[:punct:]", " "))  %>%
+  mutate(text = str_replace_all(text, "[:blank:]", " "))  %>%
+  mutate(text = str_replace_all(text, "[:digit:]", " "))  %>%
+  unnest_tokens(word, text, to_lower = TRUE)              %>% 
+  anti_join(stop_words)                                   %>%
+  distinct(word)
+
+t2 <- g2                                                  %>% 
+  select(payload)                                         %>% 
+  rename(text = payload)                                  %>%
+  mutate(text = str_replace_all(text, "[:punct:]", " "))  %>%
+  mutate(text = str_replace_all(text, "[:blank:]", " "))  %>%
+  mutate(text = str_replace_all(text, "[:digit:]", " "))  %>%
+  unnest_tokens(word, text, to_lower = TRUE)              %>% 
+  anti_join(stop_words)                                   %>%
+  distinct(word)
+
+t3 <- g3                                                  %>% 
+  select(payload)                                         %>% 
+  rename(text = payload)                                  %>%
+  mutate(text = str_replace_all(text, "[:punct:]", " "))  %>%
+  mutate(text = str_replace_all(text, "[:blank:]", " "))  %>%
+  mutate(text = str_replace_all(text, "[:digit:]", " "))  %>%
+  unnest_tokens(word, text, to_lower = TRUE)              %>% 
+  anti_join(stop_words)                                   %>%
+  distinct(word)
+
+t1_words <- nrow(t1)
+t2_words <- nrow(t2)
+t3_words <- nrow(t3)
+
+tot_words <- t1_words + t2_words + t3_words
+ 
+t1_pct <- t1_words/tot_words
+t2t3_pct <- nrow(t2t3)/tot_words
+t1_unique <- setdiff(t1,union(t2,t3))
+t1_unique_pct <- nrow(t1_unique)/tot_words
+t2_unique <- setdiff(t2,union(t1,t3))
+t2_unique_pct <- nrow(t2_unique)/tot_words
+t3_unique <- setdiff(t1,union(t1,t2))
+t3_unique_pct <- nrow(t3_unique)/tot_words
 
 sessinfo <- sessionInfo()
+
+# End of program
 
 ```
 
@@ -521,7 +584,7 @@ As of December 31, 2000, Enron employed approximately 20,600 persons.
 
 For the year ended December 31, 2000, it had operating revenues of $100,789 million, according to the same report, in which it described one of its businesses as
 
-> Enron purchases, markets and delivers natural gas, electricity and other commodities in North America. Customers include independent oil and gas producers, energy- intensive industrials, public and investor-owned utility power companies, small independent power producers and local distribution companies. Enron also offers a broad range of price, risk management and financing services including forward contracts, swap agreements and other contractual commitments. Enron's strategy is to enhance the scale, scope, flexibility and speed of its North American energy businesses through developing and acquiring selective assets, securing contractual access to third party assets, forming alliances with customers and utilizing technology such as EnronOnline.  With increased liquidity in the marketplace and the success of EnronOnline, Enron believes that it no longer needs to own the same level of physical assets, instead utilizing contracting and market-making activities.
+> Enron purchases, markets and delivers natural gas, electricity and other commodities in North America. Customers include independent oil and gas producers, energy- intensive industries, public and investor-owned utility power companies, small independent power producers and local distribution companies. Enron also offers a broad range of price, risk management and financing services including forward contracts, swap agreements and other contractual commitments. Enron's strategy is to enhance the scale, scope, flexibility and speed of its North American energy businesses through developing and acquiring selective assets, securing contractual access to third party assets, forming alliances with customers and utilizing technology such as EnronOnline.  With increased liquidity in the marketplace and the success of EnronOnline, Enron believes that it no longer needs to own the same level of physical assets, instead utilizing contracting and market-making activities.
 
 On December 2, 2001, Enron filed for [bankruptcy protection].
 
@@ -537,13 +600,13 @@ FERC obtained approximately 500,000 emails. Copies of these were acquired by Les
 
 At the time, electronic record examination (*ediscovery*) in litigation was in a primitive state. It was not uncommon, for example, for paper copies of email to be offered. These would typically be read by teams of freelance attorneys looking for keywords. Advanced technology included scanning with optical character recognition and some proprietary software options to organize emails and capture the status of review. 
 
-Much of the focus was directed to keyword searches, sometimes called the *smoking gun* approach. Brute force examination misses opportunities to understand the social networks that reflect how the organization operates, what their concerns are and the haphazard exposure of document reviewers inevitably poses the [Elephant and the Blind Men Problem]. To triage the corpus quickly and efficiently, it should first be distilled and analyzed in terms of its network characteristics -- who corresponds privately with whom.
+Much of the focus was directed to keyword searches, sometimes called the *smoking gun* approach. Brute force examination misses opportunities to understand the social networks that reflect how the organization operates, what their concerns are and the haphazard exposure of document reviewers inevitably poses the [Elephant and the Blind Men Problem]. To triage the corpus quickly and efficiently, it should first be distilled and analyzed in terms of its social network characteristics -- who corresponds privately with whom.
 
 # Analysis
 
 ## Data acquisition
 
-I obtained a copy of the [2009 version] of the corpus in 2010. It contains copies of emails of a private nature that involve three users have who since requested to be [redacted]. I have removed those 27 emails.^[Most of my work on data wrangling and preliminary analysis took place in 2010 in Python, relying heavily on the NLTK and networkx packages.]
+I obtained a copy of the [2009 version] of the corpus in 2010. It contains copies of emails of a private nature that involve three users have who since requested 27 emails to be [redacted]. I have removed those.^[Most of my work on data wrangling and preliminary analysis took place in 2010 in Python, relying heavily on the NLTK and networkx packages.]
 
 The following were extracted from the SQL database I prepared for my 2010 analysis on the graph portion of this paper.
 
@@ -579,7 +642,7 @@ Each email was a plaintext file^[Most had been generated by Microsoft Outlook, b
 
 ![Typical user data tree](img/dtree.jpg)
 
-Although tedious, traversing the directory tree, parsing the emails and loading them into an SQL database, was accomplished with a combination of Python and Perl scripting and standard bash tools. I do not reproduce that process here as it has little bearing on the main topic of this paper.^[For this paper, supplemental processing of the recipient field was necessary and reflected in the script to remove spurious punctation, such as the newline character embedded as slash-n.]
+Although tedious, traversing the directory tree, parsing the emails and loading them into an SQL database, was accomplished with a combination of Python and Perl scripting and standard bash tools. I do not reproduce that process here as it has little bearing on the main topic of this paper.^[For this paper, supplemental processing of the recipient field was necessary and reflected in the script to remove spurious punctuation, such as the newline character embedded as slash-n.]
 
 ### Data structure
 
@@ -597,7 +660,7 @@ For natural language processing (**NLP**) purposes, treating the `payload` rathe
 
 ### Prioritization
 
-Traditional analysis of emails was conducted on the principle that *something may be overlooked,* which delays the value of email in preliminary analysis. Prioritizing always leaves open the option of reviewing the set-asides later.
+Traditional litigation analysis of emails was conducted on the principle that *something may be overlooked,* which delays the value of email in preliminary analysis. Prioritizing always leaves open the option of reviewing the set-asides later.
 
 After deduplication, the first filter applied was to eliminate all email from external addresses that were not also recipients from internal addresses. Spam, newsletters and the like have low information potential. This filter reduced the remaining half of the corpus by half again, leaving approximately 125,000 emails.
 
@@ -609,9 +672,9 @@ The third filter limited the dataset to emails sent before Enron's December 2, 2
 
 ### The nature of social networks
 
-Following the reduction of the corpus, the remaining senders and receivers were natural persons who engaged in mutual correspondence. These constitute `nodes` or `vertices` and their emails `edges`^[Or `arcs`, when directionality is considered]. Draw theee points and connect them, and you have created three nodes and three edges, a triagle, which is termed a `graph` object. A graph object encapsulates many useful features aside from who knows whom^[Such as the parlor game [six degrees of Kevin Bacon]] including measures of density, centrality, connectedness, separation, clustering and other indicia of how well or poorly embedded in an organization any individual may stand.
+Following the reduction of the corpus, the remaining senders and receivers were natural persons who engaged in mutual correspondence. These constitute `nodes` or `vertices` and their emails `edges`^[Or `arcs`, when directionality is considered]. Draw three points and connect them, and you have created three nodes and three edges, a triage, which is termed a `graph` object. A graph object encapsulates many useful features aside from who knows whom^[Such as the parlor game [six degrees of Kevin Bacon]] including measures of density, centrality, connectedness, separation, clustering and other indicia of how well or poorly embedded in an organization any individual may stand.
 
-Graphs are potentially computationally intensive, which motivated the reduction of the selection of emails and users to approximately 1.4% of the emails available for examination.^[Together with the observation of the many sources of noise arising from the high volume of emails not relevant to any of the inquiries being made, including, for example, inspirational quotes of the day from an external site.]
+Graphs are potentially computationally intensive, which motivated the initial reduction of the selection of emails and users to approximately 1.4% of the emails available for examination. In addition, moving from bigraph directed network to multidirected graph^[A multidirected graph has a single edge to multiple vertices; the analysis is beyond the scope of a term paper for a network as large as the Enron Corpus.]
 
 Graphs are not only a processing unit, they constitute the domain of their own branch of mathematics.^[*See, e.g.*, the brief tutorial by [Keijo Ruohonen]].
 
@@ -619,19 +682,15 @@ Graphs are not only a processing unit, they constitute the domain of their own b
 
 Each unique Enron address in the reduced dataset was assigned a userid. The primary purpose was to facilitate social network analysis with node identifiers of uniform length; the second, to reduce analyst bias arising from gender stereotyping, frequency of exposure and similar subjective pattern seeking behaviors. 
 
-To achieve a computationally practicable dataset for initial social network analysis, emails were limited to single Enron sender to Enron single recipient, reducing the dataset further, to 9,615 emails.
-
-The resulting graph had low density, and the the dataset was further trimmed by restricting it to non-isolate correspondents, each of whom both sent and received emails in the corpus.
-
+To achieve a computationally practicable dataset for initial social network analysis, emails were limited to single Enron sender to Enron single recipient, reducing the dataset further, to `r comma2(singlets)` emails.
 
 ## The network composition
 
 ### Time frame
 
-All emails from January 1, 2000 to December 2, 2001 the date of the [bankruptcy] were collected. A handful of messages prior to January 1, 2000 were excluded due to their small quarterly count.
+All emails from January 1, 2000 to December 2, 2001 the date of the [bankruptcy] were collected. A handful of messages prior to January 1, 2000 were excluded due to their low counts.
 
 ### Users
-
 
 A total of `r comma2(unique_users)` unique users are represented. However, all but `r net1_vertex_number` users are non-reciprocating or isolated. To identify those, the sender and recipient userids were extracted and converted to a graph object, which will be referred to as the **reduced Enron corpus.** Its attributes are
 
@@ -649,7 +708,7 @@ Definition of terms:
 * bipartite: set of two vertices where no vertex in the same set is connected
 * edges: number of emails
 
-The graph can be visualized in several ways. Here, and throughout the paper, a representation based on the Fructerman-Reingold force-directed algorithm^Fruchterman, T. M. and Reingold, E. M. (1991), Graph drawing by force‐directed placement. Softw: Pract. Exper., 21: 1129-1164. doi:10.1002/spe.4380211102] is used to promote visual discrimination. 
+The graph can be visualized in several ways. Here, and throughout the paper, a representation based on the Fructerman-Reingold force-directed algorithm^[Fruchterman, T. M. and Reingold, E. M. (1991), Graph drawing by force‐directed placement. Softw: Pract. Exper., 21: 1129-1164. doi:10.1002/spe.4380211102] is used to promote visual discrimination. 
 
 ```{r, echo=FALSE, results="as-is", comment=NA, message=FALSE,  error = FALSE,  warning=FALSE}
 net0_plot
@@ -659,11 +718,11 @@ net0_plot
 net1_plot
 ```
 
-Graph objects shown here represent users (vertices) by dots and emails (edges) by lines. The length of the line is not a measure of distance. The visualization algorithm arranges vertices and edges to promote recognition of connections only. It is also important to note that the visual representation of graph objects is not stable. The identical graph and identical algorithm will produce visual representations that portray the same graph object in different orientations. The relationships are preserved, but the Cartesian geometery is not.
+Graph objects shown here represent users (vertices) by dots and emails (edges) by lines. The length of the line is not a measure of distance. The visualization algorithm arranges vertices and edges to promote recognition of connections only. 
 
 ### Time series of reduced Enron corpus January 2000-December 2001
 
-One outlier and several groups of outliers are apparent, mid-May 2001 and the weeks leading up to the [bankruptcy].
+Several groups of outliers are apparent, notably mid-May 2001 and the weeks leading up to the [bankruptcy].
 
 ```{r, echo = FALSE, warning=FALSE, message=FALSE}
 ts_plot
@@ -671,13 +730,13 @@ ts_plot
 
 ### Transitivity
 
-Graph transitivity is a measure of the liklihood that two pairs of vertices (a *dyads*) are likely to be strongly  connected $A->B->C => A->C$ in the weak form and $A->B->C <=> A->C$ in the strong form. The `sna:gtrans` strong form measure for the graph is `r comma2(gt.cg)`
+Graph transitivity is a measure of the likelihood that two pairs of vertices (*dyads*) are likely to be strongly  connected $A->B->C => A->C$ in the weak form and $A->B->C <=> A->C$ in the strong form. The `sna:gtrans` strong form measure for the graph is `r comma2(round(gt.cg,4)`
 
 ## User prominence
 
 ### Graph measures of user prominence
 
-All of the functions described in this section^[Rejected measures of graph centrality of vertices:
+All of the functions described in this section^[    Rejected measures of graph centrality of vertices:
 * btw <- betweenness(net1) # redundant with ldctr
 * inf <- infocent(net1) all 1.206801e-13
 * cls <- closeness(net1) all 0
@@ -756,7 +815,7 @@ Stress centrality was selected because it correlated best with the other two met
 
 Using the top 100 `stresscent` users yields `r comma2(size_of_core )` vertices.
 
-Two latent network analyses were performed. The first selected users who were among the top 100 whether as sender or recipient (the *union* model). The second selected users who were among the top 100 *either* as sender or receiver (the *intersection* model).
+Two latent network analyses were performed. The first selected users who were among the top 100 *whether*both* as sender or recipient (the *union* model). The second selected users who were among the top 100 *either* as sender or receiver (the *intersection* model).
 
 #### The union model
 
@@ -780,19 +839,20 @@ The `latent::ergmm` model was applied to the intersection graph.
     c1.fit <- ergmm(net_c1 ~ euclidean(d=2, G=3)+rreceiver,
           control=ergmm.control(store.burnin=TRUE), seed = 2203)
 
-The function fits the graph to a latent network model using a Markov chain Monte Carlo algorithm. The resulting graph visualization is
+The function fits the graph to a latent network model using a Markov chain Monte Carlo algorithm for a Bayesian model fit. The resulting graph visualization identifieds three clusters. Some vertices show pie slices indicating the relative probabilities of belonging to one of the three clusters. The diagnostics include an intercept estimate, confidence intervals, and a p-value, all of which are satisfactory.
 
 ``````{r, include=TRUE, fig.align="center", fig.cap=c("Latent graph based on stresscent"), echo=FALSE}
 knitr::include_graphics("img/c1.latent.plot.png")
 ```
 
-and identifies three clusters. Some nodes show pie slices indicating the relative probabilities of belonging to one of the three clusters. The diagnostics include an intercept estimate, confidence intervals, and a p-value, all of which are satisfactory.
+
 
 ```{r}
 summary(c1.fit)
 ```
 
-Convergence of the model is shown by diagnostic plots of autocorrelation.
+
+Convergence of the model is shown by diagnostic plots of autocorrelation. The log probability (`lpY`) decreases, as does the probability vector (`beta.1`), and the receiver random effect (`receiver1`). The point estimates Z.1.1 and Z.1.2 are consistent across lags. The following traces and densities unskewed distributions, and the goodness of fit plots are reasonable.
 
 ```{r, include=TRUE, fig.align="center", fig.cap=c("MCMC Diagnostics, Part 1"), echo=FALSE}
 knitr::include_graphics("img/c1.mcmcpt1.png")
@@ -806,8 +866,7 @@ knitr::include_graphics("img/c1.mcmcpt2.png")
 knitr::include_graphics("img/c1.mcmcpt3.png")
 ```
 
-Goodness of fit diagnostics for in-degree, out-degree and geodesic distsance are provided in tabular format and plots
-
+Goodness of fit diagnostics for in-degree, out-degree and geodesic distance are provided in tabular format and plots. Some excursions in each of the plots appear, indicating the potential benefit for further model tuning.
 ```{r}
 c1.gof
 ```
@@ -816,7 +875,7 @@ c1.gof
 plot(c1.gof, plotlogodds=TRUE)
 ```
 
-The three clusters can be examined separately.
+The three clusters can be examined separately.^[Highlighted vertices are those included in the top 100 `stresscent` group.]
 
 ```{r}
 clust1_plot
@@ -830,7 +889,28 @@ clust2_plot
 clust3_plot
 ```
 
-TTKTKTKTKTK>T
+Cluster 1 has the greatest number of vertices and edges. Five distinct userids stand out:
+
+* 4378
+* 3472
+* 4796
+* 4510
+* 5372
+
+Cluster 2 has the fewest number of vertices and edges. Only userid 3251 stands out.
+
+Cluster 3 is intermediate. Only userids 2013 and 2397 stand out.
+
+### Application of the model
+
+Aside from the visually prominent vertices in the plots above, a simple word frequency analysis of the clusters displays markedly differing vocabularies. The clusters are a subset (based on high `stresscent`) score of the 
+larger corpus that has an added field for cluster membership.
+
+Within that cluster are `r commo0(tot_words)` distinct words. Of those, `r comma2(nrow(setdiff(t1,union(t2,t3)))/tot_words*100` are unique to Cluster 1;  `r comma2(nrow(setdiff(t2,union(t1,t3)))/tot_words*100` are unique to Cluster 2; and  `r comma2(nrow(setdiff(t3,union(t1,t2)))/tot_words*100` are unique to Cluster 3.
+
+# Conclusion
+
+The hypothesis of this paper is that social network analysis preprocessing of email text is a feasible method to rapidly identify users who form subgroups with email content of potential interest. Relying solely on metadata (sender/receiver), latent network analysis identified three sub-graphs that have distinct vocabularies.
 
 # Credits
 
