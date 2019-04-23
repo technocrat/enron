@@ -10,6 +10,7 @@ suppressPackageStartupMessages(library(kableExtra))
 suppressPackageStartupMessages(library(knitr))
 suppressPackageStartupMessages(library(latentnet))
 suppressPackageStartupMessages(library(network))
+suppressPackageStartupMessages(library(pander))
 suppressPackageStartupMessages(library(sna))
 suppressPackageStartupMessages(library(statnet))
 suppressPackageStartupMessages(library(statnet.common))
@@ -46,6 +47,9 @@ comma0 <- function(x) format(x, digits = 0, big.mark = ",")
 
 comma2 <- function(x) format(x, digits = 2, big.mark = ",")
 
+# format digits to four places
+
+comma4 <- function(x) format(x, digits = 4, big.mark = ",")
 
 # number of vertices in a network object
 
@@ -80,9 +84,9 @@ plot_graph_w_nodes <- function(x,y) {
     geom_nodes(size = 0.75, color = "steelblue")  +
     geom_nodetext(aes(label = vertex.names,
                       color = sts))               +
-  scale_colour_gradient(low = "white",
-                        high = "black")           +
-  labs(title="Graph of reduced Enron corpus",
+    scale_colour_gradient(low = "white",
+                          high = "black")           +
+    labs(title="Graph of reduced Enron corpus",
          subtitle= y,
          caption="Source: Richard Careaga")			  +
     theme_ipsum_rc()		                        	+
@@ -123,14 +127,14 @@ g_enron <- enron 								                		  %>%
 
 # restrict to single recipients
 g_enron <- g_enron %>% filter(tosctn == 1 & ccsctn == 0)
-
+singlets <- nrow(g_enron)
 # censor non-enron addresses and reduce fields
 
 g_enron <- g_enron                      %>%
-filter(str_detect(tos, "enron.com"))    %>%
-filter(str_detect(sender, "enron.com")) %>%
-select(sender, tos, date, lastword)     %>%
-rename(recipient = tos, payload = lastword)
+  filter(str_detect(tos, "enron.com"))    %>%
+  filter(str_detect(sender, "enron.com")) %>%
+  select(sender, tos, date, lastword)     %>%
+  rename(recipient = tos, payload = lastword)
 
 # save for Rmd inline
 
@@ -304,7 +308,6 @@ load("data/gt.cg.Rda")
 # Assess measures of centrality on de-isolated graph net1
 
 # calculate measures of centrality
-
 deg   <- degree(net1, rescale = TRUE)
 ldctr <- loadcent(net1, rescale = TRUE)
 sts   <- stresscent(net1, rescale = TRUE)
@@ -348,148 +351,68 @@ well_positioned <- union(union(top25_d,top25_l), top25_s)
 
 # core Enron high-centrality exchanges
 
-c_enron <- gclean_enron %>% filter(s_uid %in% top100_s$userid &
-                              r_uid %in% top100_s$userid)
-
-net_c <- c_enron %>%  select(s_uid, r_uid) %>% netr(.) %>% neti(.)
-net_c_plot <- plot_graph(net_c, "Graph of Enron corpus after 100 sts filter")
-
 # degree centrality
 
 d_enron <- gclean_enron %>% filter(s_uid %in% top25_d$userid &
-                              r_uid %in% top25_d$userid)
-
+                                     r_uid %in% top25_d$userid)
 net_d <- d_enron %>%  select(s_uid, r_uid) %>% netr(.) %>% neti(.)
 net_d_plot <- plot_graph(net_d, "Graph of Enron corpus after degree filter")
 
 # load centrality
 
 l_enron <- gclean_enron %>% filter(s_uid %in% top25_l$userid &
-                                r_uid %in% top25_l$userid)
-
-net_l <- d_enron %>%  select(s_uid, r_uid) %>% netr(.) %>% neti(.)
+                                     r_uid %in% top25_l$userid)
+net_l <- l_enron %>%  select(s_uid, r_uid) %>% netr(.) %>% neti(.)
 net_l_plot <- plot_graph(net_l, "Graph of Enron corpus after loadcent filter")
 
-# latent from intersection
-# failed with burnin = 100000
-# top25_i <- intersect(intersect(top25_d,top25_l), top25_s)
-#
-# i_enron <- gclean_enron %>% filter(s_uid %in% top25_i$userid &
-#                                 r_uid %in% top25_i$userid)
-#
-# net_i <- i_enron %>%  select(s_uid, r_uid) %>% netr(.) %>% neti(.)
-# net_i_plot <- plot_graph(net_i, "Graph of Enron corpus after filter intersection")
-#
-#
-# i.fit <- ergmm(net_i ~ euclidean(d=2, G=3)+rreceiver,
-#                control=ergmm.control(burnin = 100000, store.burnin=TRUE), seed = 2203)
-# save(i.fit, file = "data/i.fit.Rda")
-# load("data/i.fit.Rda")
-# mcmc.diagnostics(i.fit)
-# plot(i.fit,pie=TRUE,rand.eff="receiver")
-# plot(i.fit,what="pmean",rand.eff="receiver")
-# plot(i.fit,what="cloud",rand.eff="receiver")
-# plot(i.fit,what="density",rand.eff="receiver")
-# plot(i.fit,what=5,rand.eff="receiver")
-# summary(i.fit)
-#
-# # Goodnet of fit
-# par(mfrow=c(1,3))
-# par(oma=c(0.5,2,1,0.5))
-# plot(c1.gof)
-# par(op)
-#
-# i.gof <- gof(i.fit)
-# i.gof.plot <- plot(i.gof, plotlogodds=TRUE)
+# stress centrality
 
-# latent from union of the three measures of centrality
+s_enron <- gclean_enron %>% filter(s_uid %in% top25_s$userid &
+                                     r_uid %in% top25_s$userid)
+net_s <- s_enron %>%  select(s_uid, r_uid) %>% netr(.) %>% neti(.)
+net_s_plot <- plot_graph(net_s, "Graph of Enron corpus after stresscent filter")
 
-# top25_u <- union(union(top25_d,top25_l), top25_s)
-#
-# u_enron <- gclean_enron %>% filter(s_uid %in% top25_u$userid &
-#                                 r_uid %in% top25_u$userid)
-#
-# net_u <- u_enron %>%  select(s_uid, r_uid) %>% netr(.) %>% neti(.)
-# net_u_plot <- plot_graph(net_u, "Graph of Enron corpus after filter union")
-
-#u.fit <- ergmm(net_u ~ euclidean(d=2, G=3)+rreceiver,
-#               control=ergmm.control(store.burnin=TRUE), seed = 2203)
-#save(u.fit, file = "data/u.fit.Rda")
-#load("data/u.fit.Rda")
-# See summary: no diagnostics for p > 0.558
-# pdf("img/u_mcmc_diagnostics.pdf", onefile=FALSE)
-# mcmc.diagnostics(u.fit)
-# dev.off()
-# plot(u.fit,pie=TRUE,rand.eff="receiver")
-# summary(u.fit)
-
-# # Goodnet of fit
-# u.gof <- gof(u.fit)
-# par(mfrow=c(1,3))
-# par(oma=c(0.5,2,1,0.5))
-# plot(u.gof)
-# u.gof.plot
-# u.gof.plot <- plot(u.gof, plotlogodds=TRUE)
-
-
-
-# both sender and receiver central using strees centrality
+# both sender and receiver central using stress centrality
 
 c_enron <- gclean_enron %>% filter(s_uid %in% top100_s$userid &
-                                 r_uid %in% top100_s$userid)
+                                   r_uid %in% top100_s$userid)
+net_c <- c_enron %>% netr(.) %>% neti(.)
+net_c_plot <- plot_graph(net_c, "Graph of Enron corpus, both sender and receiver")
+c.fit <- ergmm(net_c ~ euclidean(d=2, G=3)+rreceiver,
+              control=ergmm.control(store.burnin=TRUE), seed = 2203)
+#save(c.fit, file = "data/c.fit.Rda")
+load("data/c.fit.Rda")
+mcmc.diagnostics(c.fit)
+plot(c.fit,pie=TRUE,rand.eff="receiver")
+summary(c.fit)
+# Goodness of fit
 
+c.gof <- gof(c.fit)
+par(mfrow=c(1,3))
+par(oma=c(0.5,2,1,0.5))
+plot(c.gof)
+par(mfrow=c(1,3))
+par(oma=c(0.5,2,1,0.5))
+plot(c.gof, plotlogodds=TRUE)
 # for Rmd
 
 size_of_core <- nrow(c_enron)
 
-# c1 better diagnostics
-# u_net <- c_enron %>% netr(.) %>% neti(.)
-# net_u_plot <- plot_graph(u_net, "Graph of Enron corpus, stresscent union")
-#
-# # latent network modeling
-#
-# #c.fit <- ergmm(net_c ~ euclidean(d=2, G=3)+rreceiver,
-# #                control=ergmm.control(store.burnin=TRUE), seed = 2203)
-# #save(c.fit, file = "data/c.fit.Rda")
-# load("data/c.fit.Rda")
-# pdf("img/c.mcmc.diagnostics.Rda")
-# mcmc.diagnostics(c.fit)
-# dev.off()
-#
-# par(mfrow=c(1,1))
-# plot(c.fit,pie=TRUE,rand.eff="receiver")
-# summary(c.fit)
-#
-# # Goodnest of fit
-#
-# c.gof <- gof(c.fit)
-# par(mfrow=c(1,3))
-# par(oma=c(0.5,2,1,0.5))
-# plot(c.gof)
-# par(mfrow=c(1,3))
-# par(oma=c(0.5,2,1,0.5))
-# plot(c.gof, plotlogodds=TRUE)
-
 # either sender or receiver central
 
 c1_enron <- gclean_enron %>% filter(s_uid %in% top100_s$userid |
-                                r_uid %in% top100_s$userid)
-
+                                    r_uid %in% top100_s$userid)
 net_c1 <- c1_enron %>%  select(s_uid, r_uid) %>% netr(.) %>% neti(.)
-# c1.fit <- ergmm(net_c1 ~ euclidean(d=2, G=3)+rreceiver,
-#                control=ergmm.control(store.burnin=TRUE), seed = 2203)
-# save("data/c1.fit.Rda")
+net_c1_plot <- plot_graph(net_c1, "Graph of Enron corpus, either sender or receiver")
+c1.fit <- ergmm(net_c1 ~ euclidean(d=2, G=3)+rreceiver,
+                control=ergmm.control(store.burnin=TRUE), seed = 2203)
+save(c1.fit, file = "data/c1.fit.Rda")
 load("data/c1.fit.Rda")
-net_c1_plot <- plot_graph(net_c1, "Graph of Enron corpus central sender or receiver")
-pdf("img/c1_mcmc_diagnostics.pdf", onefile=FALSE)
 mcmc.diagnostics(c1.fit)
-dev.off()
-
 plot(c1.fit,pie=TRUE,rand.eff="receiver")
-
 summary(c1.fit)
 
-# Goodnet of fit
+# Goodness of fit
 
 c1.gof <- gof(c1.fit)
 par(mfrow=c(1,3))
@@ -502,8 +425,8 @@ plot(c1.gof, plotlogodds=TRUE)
 #Map userids to clusters
 
 c1.gc <-  enframe(c1.fit$mkl$Z.K) %>%
-            select(-name)         %>%
-            rename(gcl = value)
+  select(-name)         %>%
+  rename(gcl = value)
 
 c1.gc <- bind_cols(top100_s, c1.gc)
 
@@ -518,8 +441,8 @@ c1_enron <- left_join(c1_enron, c1.gc)
 # n_enron for "network"
 n_enron <- c1_enron
 
-#save(n_enron, file = "data/n_enron.Rda")
-load("data/n_enron.Rda")
+save(n_enron, file = "data/n_enron.Rda")
+#load("data/n_enron.Rda")
 
 # subset by _glc
 
@@ -527,9 +450,9 @@ g1 <- n_enron %>% filter(s_gcl == 1)
 g2 <- n_enron %>% filter(s_gcl == 2)
 g3 <- n_enron %>% filter(s_gcl == 3)
 
-net_g1 <- g1 %>% select(s_uid, r_uid) %>% netr(.) %>% neti(.)
-net_g2 <- g2 %>% select(s_uid, r_uid) %>% netr(.) %>% neti(.)
-net_g3 <- g3 %>% select(s_uid, r_uid) %>% netr(.) %>% neti(.)
+net1 <- g1 %>% select(s_uid, r_uid) %>% netr(.) %>% neti(.)
+net2 <- g2 %>% select(s_uid, r_uid) %>% netr(.) %>% neti(.)
+net3 <- g3 %>% select(s_uid, r_uid) %>% netr(.) %>% neti(.)
 
 # For Rmd
 
@@ -538,27 +461,82 @@ net_g3 <- g3 %>% select(s_uid, r_uid) %>% netr(.) %>% neti(.)
 # vertices must be positive; 2 is used due to the subsequent
 # log transformation
 
-m <-  as.matrix(stresscent(net_g1))
+m <-  as.matrix(stresscent(net1))
 m <- m + 2
 sts <- round(log(m),1)
-net_g1%v%"sts" <- sts[,1]
-clust1_plot <- plot_graph_w_nodes(net_g1, "Cluster 1")
+net1%v%"sts" <- sts[,1]
+clust1_plot <- plot_graph_w_nodes(net1, "Cluster 1")
 
-m <-  as.matrix(stresscent(net_g2))
+m <-  as.matrix(stresscent(net2))
 m <- m + 2
 sts <- round(log(m),1)
-net_g2%v%"sts" <- sts[,1]
-clust2_plot <- plot_graph_w_nodes(net_g2, "Cluster 2")
+net2%v%"sts" <- sts[,1]
+clust2_plot <- plot_graph_w_nodes(net2, "Cluster 2")
 
-m <-  as.matrix(stresscent(net_3))
+m <-  as.matrix(stresscent(net3))
 m <- m + 2
 sts <- round(log(m),1)
-net_g3%v%"sts" <- sts[,1]
-clust3_plot <- plot_graph_w_nodes(net_g3, "Cluster 3")
+net3%v%"sts" <- sts[,1]
+clust3_plot <- plot_graph_w_nodes(net3, "Cluster 3")
 
+# short NLP analysis
+
+t_all <- gclean_enron                                     %>%
+  select(payload)                                         %>%
+  rename(text = payload)                                  %>%
+  mutate(text = str_replace_all(text, "[:punct:]", " "))  %>%
+  mutate(text = str_replace_all(text, "[:blank:]", " "))  %>%
+  mutate(text = str_replace_all(text, "[:digit:]", " "))  %>%
+  unnest_tokens(word, text, to_lower = TRUE)              %>%
+  anti_join(stop_words)                                   %>%
+  distinct(word)
+
+t1 <- g1                                                  %>%
+  select(payload)                                         %>%
+  rename(text = payload)                                  %>%
+  mutate(text = str_replace_all(text, "[:punct:]", " "))  %>%
+  mutate(text = str_replace_all(text, "[:blank:]", " "))  %>%
+  mutate(text = str_replace_all(text, "[:digit:]", " "))  %>%
+  unnest_tokens(word, text, to_lower = TRUE)              %>%
+  anti_join(stop_words)                                   %>%
+  distinct(word)
+
+t2 <- g2                                                  %>%
+  select(payload)                                         %>%
+  rename(text = payload)                                  %>%
+  mutate(text = str_replace_all(text, "[:punct:]", " "))  %>%
+  mutate(text = str_replace_all(text, "[:blank:]", " "))  %>%
+  mutate(text = str_replace_all(text, "[:digit:]", " "))  %>%
+  unnest_tokens(word, text, to_lower = TRUE)              %>%
+  anti_join(stop_words)                                   %>%
+  distinct(word)
+
+t3 <- g3                                                  %>%
+  select(payload)                                         %>%
+  rename(text = payload)                                  %>%
+  mutate(text = str_replace_all(text, "[:punct:]", " "))  %>%
+  mutate(text = str_replace_all(text, "[:blank:]", " "))  %>%
+  mutate(text = str_replace_all(text, "[:digit:]", " "))  %>%
+  unnest_tokens(word, text, to_lower = TRUE)              %>%
+  anti_join(stop_words)                                   %>%
+  distinct(word)
+
+t1_words <- nrow(t1)
+t2_words <- nrow(t2)
+t3_words <- nrow(t3)
+
+tot_words <- t1_words + t2_words + t3_words
+
+t1_pct <- t1_words/tot_words
+t2t3 <- union(t2,t3)
+t2t3_pct <- nrow(t2t3)/tot_words
+t1_unique <- setdiff(t1,union(t2,t3))
+t1_unique_pct <- nrow(t1_unique)/tot_words
+t2_unique <- setdiff(t2,union(t1,t3))
+t2_unique_pct <- nrow(t2_unique)/tot_words
+t3_unique <- setdiff(t1,union(t1,t2))
+t3_unique_pct <- nrow(t3_unique)/tot_words
 
 # End of program
-
-sessionInfo()
 
 sessinfo <- sessionInfo()
