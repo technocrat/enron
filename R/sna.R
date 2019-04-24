@@ -351,7 +351,7 @@ well_positioned <- union(union(top25_d,top25_l), top25_s)
 # degree centrality
 
 d_enron <- gclean_enron %>% filter(s_uid %in% top25_d$userid &
-                                     r_uid %in% top25_d$userid)
+                                   r_uid %in% top25_d$userid)
 net_d <- d_enron %>%  select(s_uid, r_uid) %>% netr(.) %>% neti(.)
 net_d_plot <- plot_graph(net_d, "Graph of Enron corpus after degree filter")
 
@@ -398,25 +398,6 @@ plot(c.gof, plotlogodds=TRUE)
 # for Rmd
 
 size_of_core <- nrow(c_enron)
-
-# Failed attempt graph of size 1,000 too large
-# either sender or receiver central
-
-# c1_enron <- gclean_enron %>% filter(s_uid %in% top100_s$userid |
-#                                       r_uid %in% top100_s$userid)
-# net_c1 <- c1_enron %>%  select(s_uid, r_uid) %>% netr(.) %>% neti(.)
-# net_c1_plot <- plot_graph(net_c1, "Graph of Enron corpus, either sender or receiver")
-
-#c1.fit <- ergmm(net_c1 ~ euclidean(d=2, G=3)+rreceiver,
-#control=ergmm.control(store.burnin=TRUE), seed = 2203)
-# Error at CTRL C after 2 hours
-# Warning message:
-#In backoff.check(model, burnin.sample, burnin.control) :
-#  Backing off: too few acceptances. If you see this message several times in a row, use a longer burnin.
-# Increased default burnin from 10000 to 100000
-# c1.fit <- ergmm(net_c1 ~ euclidean(d=2, G=3)+rreceiver,
-# control=ergmm.control(store.burnin=TRUE, burnin = 100000), seed = 2203)
-# terminated at 1 hr 39 minutes
 
 #Map userids to clusters
 
@@ -511,7 +492,6 @@ t2 <- g2                                                  %>%
 
 t3 <- g3                                                  %>%
   select(payload)                                         %>%
-  rename(text = payload)                                  %>%
   mutate(text = str_replace_all(text, "[:punct:]", " "))  %>%
   mutate(text = str_replace_all(text, "[:blank:]", " "))  %>%
   mutate(text = str_replace_all(text, "[:digit:]", " "))  %>%
