@@ -202,31 +202,30 @@ size_of_g_enron_2000 <- nrow(g_enron)
 
 # end data cleansing
 
-# # create unique identifiers for users to create graph object
-#
-# # collect unique user names
-#
-# sender    <- g_enron %>% select(sender)     %>% distinct()
-# recipient <- g_enron %>% select(recipient)  %>% distinct()
-# colnames(sender)    <- "user"
-# colnames(recipient) <- "user"
-# users <- bind_rows(sender,recipient)
-# users <- users %>% distinct()
-#
-# # create pool of userids
-#
-# set.seed(2203)
-# user_pool <- seq(1000,nrow(users)+1001,1)
-# userid <- enframe(sample(user_pool, nrow(users), replace = FALSE))  %>%
-#   select(-name)                                                     %>%
-#   rename(userid = value)                                            %>%
-#   mutate(userid = as.integer(userid))
-#
-# userid <- bind_cols(users, userid)
-#
-# #save(userid, file = "data/userid.Rda")
+# create unique identifiers for users to create graph object
 
-load("data/userid.Rda")
+# collect unique user names
+
+sender    <- g_enron %>% select(sender)     %>% distinct()
+recipient <- g_enron %>% select(recipient)  %>% distinct()
+colnames(sender)    <- "user"
+colnames(recipient) <- "user"
+users <- bind_rows(sender,recipient)
+users <- users %>% distinct()
+
+# create pool of userids
+
+set.seed(2203)
+user_pool <- seq(1000,nrow(users)+1001,1)
+userid <- enframe(sample(user_pool, nrow(users), replace = FALSE))  %>%
+  select(-name)                                                     %>%
+  rename(userid = value)                                            %>%
+  mutate(userid = as.integer(userid))
+
+userid <- bind_cols(users, userid)
+
+#save(userid, file = "data/userid.Rda")
+
 
 # for Rmd
 
@@ -241,11 +240,10 @@ g_enron <- left_join(g_enron, userid)
 
 colnames(userid) <- c("recipient", "r_uid")
 g_enron <- left_join(g_enron, userid)
-#save(g_enron, file = "g_enron.Rda")
 
 gclean_enron <- g_enron
 
-#save(gclean_enron, file = "data/gclean_enron.Rda") # "the reduced Enron corpus"
+# "the reduced Enron corpus"
 
 # remove unneed objects from namespace
 
@@ -254,7 +252,6 @@ rm(con, enron, g_enron, faux_nl, left_brak, quote_s, recipient, right_brak, send
 
 # begin exploratory analysis
 
-load("data/gclean_enron.Rda")
 time_series <- gclean_enron %>% group_by(date) %>% count() %>% ungroup()
 
 # for Rmd summary
@@ -294,7 +291,7 @@ net1 <- net0 %>% neti(.)
 net1_vertex_number <- census(net1)
 net1_members       <- cohort(net1)
 
-# net0 plot, excluding isolates
+# net1 plot, excluding isolates
 
 net1_plot <- plot_graph(net1, "Graph of Enron corpus without isolates")
 
@@ -372,19 +369,22 @@ s_enron <- gclean_enron %>% filter(s_uid %in% top25_s$userid &
 net_s <- s_enron %>%  select(s_uid, r_uid) %>% netr(.) %>% neti(.)
 net_s_plot <- plot_graph(net_s, "Graph of Enron corpus after stresscent filter")
 
+rm(d_enron, l_enron, s_enron, net_d, net_l, net_s)
+
 # both sender and receiver central using stress centrality
 
 c_enron <- gclean_enron %>% filter(s_uid %in% top100_s$userid &
-                                   r_uid %in% top100_s$userid)
+                                     r_uid %in% top100_s$userid)
 net_c <- c_enron %>% netr(.) %>% neti(.)
 net_c_plot <- plot_graph(net_c, "Graph of Enron corpus, both sender and receiver")
-c.fit <- ergmm(net_c ~ euclidean(d=2, G=3)+rreceiver,
-              control=ergmm.control(store.burnin=TRUE), seed = 2203)
+#c.fit <- ergmm(net_c ~ euclidean(d=2, G=3)+rreceiver,
+#               control=ergmm.control(store.burnin=TRUE), seed = 2203)
 #save(c.fit, file = "data/c.fit.Rda")
 load("data/c.fit.Rda")
-mcmc.diagnostics(c.fit)
 plot(c.fit,pie=TRUE,rand.eff="receiver")
+mcmc.diagnostics(c.fit)
 summary(c.fit)
+
 # Goodness of fit
 
 c.gof <- gof(c.fit)
@@ -394,54 +394,50 @@ plot(c.gof)
 par(mfrow=c(1,3))
 par(oma=c(0.5,2,1,0.5))
 plot(c.gof, plotlogodds=TRUE)
+
 # for Rmd
 
 size_of_core <- nrow(c_enron)
 
+# Failed attempt graph of size 1,000 too large
 # either sender or receiver central
 
-c1_enron <- gclean_enron %>% filter(s_uid %in% top100_s$userid |
-                                    r_uid %in% top100_s$userid)
-net_c1 <- c1_enron %>%  select(s_uid, r_uid) %>% netr(.) %>% neti(.)
-net_c1_plot <- plot_graph(net_c1, "Graph of Enron corpus, either sender or receiver")
-c1.fit <- ergmm(net_c1 ~ euclidean(d=2, G=3)+rreceiver,
-                control=ergmm.control(store.burnin=TRUE), seed = 2203)
-save(c1.fit, file = "data/c1.fit.Rda")
-load("data/c1.fit.Rda")
-mcmc.diagnostics(c1.fit)
-plot(c1.fit,pie=TRUE,rand.eff="receiver")
-summary(c1.fit)
+# c1_enron <- gclean_enron %>% filter(s_uid %in% top100_s$userid |
+#                                       r_uid %in% top100_s$userid)
+# net_c1 <- c1_enron %>%  select(s_uid, r_uid) %>% netr(.) %>% neti(.)
+# net_c1_plot <- plot_graph(net_c1, "Graph of Enron corpus, either sender or receiver")
 
-# Goodness of fit
-
-c1.gof <- gof(c1.fit)
-par(mfrow=c(1,3))
-par(oma=c(0.5,2,1,0.5))
-plot(c1.gof)
-par(mfrow=c(1,3))
-par(oma=c(0.5,2,1,0.5))
-plot(c1.gof, plotlogodds=TRUE)
+#c1.fit <- ergmm(net_c1 ~ euclidean(d=2, G=3)+rreceiver,
+#control=ergmm.control(store.burnin=TRUE), seed = 2203)
+# Error at CTRL C after 2 hours
+# Warning message:
+#In backoff.check(model, burnin.sample, burnin.control) :
+#  Backing off: too few acceptances. If you see this message several times in a row, use a longer burnin.
+# Increased default burnin from 10000 to 100000
+# c1.fit <- ergmm(net_c1 ~ euclidean(d=2, G=3)+rreceiver,
+# control=ergmm.control(store.burnin=TRUE, burnin = 100000), seed = 2203)
+# terminated at 1 hr 39 minutes
 
 #Map userids to clusters
 
-c1.gc <-  enframe(c1.fit$mkl$Z.K) %>%
+c.gc <-  enframe(c.fit$mkl$Z.K) %>%
   select(-name)         %>%
   rename(gcl = value)
 
-c1.gc <- bind_cols(top100_s, c1.gc)
+c.gc <- bind_cols(top100_s, c.gc)
 
-c1.gc <- c1.gc %>% rename(s_uid = userid, s_gcl = gcl)
+c.gc <- c.gc %>% rename(s_uid = userid, s_gcl = gcl)
 
-c1_enron <- left_join(c1_enron, c1.gc)
+c_enron <- left_join(c_enron, c.gc)
 
-c1.gc <- c1.gc %>% rename(r_uid = s_uid, r_gcl = s_gcl)
+c.gc <- c.gc %>% rename(r_uid = s_uid, r_gcl = s_gcl)
 
-c1_enron <- left_join(c1_enron, c1.gc)
+c_enron <- left_join(c_enron, c.gc)
 
 # n_enron for "network"
-n_enron <- c1_enron
+n_enron <- c_enron
 
-save(n_enron, file = "data/n_enron.Rda")
+#save(n_enron, file = "data/n_enron.Rda")
 #load("data/n_enron.Rda")
 
 # subset by _glc
@@ -480,6 +476,8 @@ net3%v%"sts" <- sts[,1]
 clust3_plot <- plot_graph_w_nodes(net3, "Cluster 3")
 
 # short NLP analysis
+
+# Extract payloads and tokenize
 
 t_all <- gclean_enron                                     %>%
   select(payload)                                         %>%
@@ -521,11 +519,15 @@ t3 <- g3                                                  %>%
   anti_join(stop_words)                                   %>%
   distinct(word)
 
+# counts of total words
 t1_words <- nrow(t1)
 t2_words <- nrow(t2)
 t3_words <- nrow(t3)
 
 tot_words <- t1_words + t2_words + t3_words
+
+# percentages in each cluster of total words
+# and percentage of words unique to each cluster
 
 t1_pct <- t1_words/tot_words
 t2t3 <- union(t2,t3)
@@ -540,3 +542,4 @@ t3_unique_pct <- nrow(t3_unique)/tot_words
 # End of program
 
 sessinfo <- sessionInfo()
+
