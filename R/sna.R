@@ -521,5 +521,4 @@ t3_unique_pct <- nrow(t3_unique)/tot_words
 
 # End of program
 
-sessinfo <- sessionInfo()
 
