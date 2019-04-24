@@ -1,7 +1,7 @@
 ---
 title: "Social Network Analysis of the Enron Corpus"
 author: Richard Careaga
-date: April 25, 2019
+date: April 24, 2019
 email: public@careaga.net
 output: hrbrthemes::ipsum_pdf
 urlcolor: blue
@@ -412,24 +412,6 @@ plot(c.gof, plotlogodds=TRUE)
 
 size_of_core <- nrow(c_enron)
 
-# Failed attempt graph of size 1,000 too large
-# either sender or receiver central
-
-# c1_enron <- gclean_enron %>% filter(s_uid %in% top100_s$userid |
-#                                       r_uid %in% top100_s$userid)
-# net_c1 <- c1_enron %>%  select(s_uid, r_uid) %>% netr(.) %>% neti(.)
-# net_c1_plot <- plot_graph(net_c1, "Graph of Enron corpus, either sender or receiver")
-
-#c1.fit <- ergmm(net_c1 ~ euclidean(d=2, G=3)+rreceiver,
-#control=ergmm.control(store.burnin=TRUE), seed = 2203)
-# Error at CTRL C after 2 hours
-# Warning message:
-#In backoff.check(model, burnin.sample, burnin.control) :
-#  Backing off: too few acceptances. If you see this message several times in a row, use a longer burnin.
-# Increased default burnin from 10000 to 100000
-# c1.fit <- ergmm(net_c1 ~ euclidean(d=2, G=3)+rreceiver,
-# control=ergmm.control(store.burnin=TRUE, burnin = 100000), seed = 2203)
-# terminated at 1 hr 39 minutes
 
 #Map userids to clusters
 
@@ -627,7 +609,7 @@ Much of the focus was directed to keyword searches, sometimes called the *smokin
 
 ## Data acquisition
 
-I obtained a copy of the [2009 version] of the corpus in 2010. It contains copies of emails of a private nature that involve three users have who since requested 27 emails to be [redacted]. I have removed those.^[Most of my work on data wrangling and preliminary analysis took place in 2010 in Python, relying heavily on the NLTK and networkx packages.]
+I obtained a copy of the [2009 version] of the corpus in 2010. It contains copies of emails of a private nature that involve three users have who since requested 27 emails to be [redacted]. I have removed those.^[Most of my work on data wrangling and preliminary analysis took place in 2010 in Python, relying heavily on the NLTK and networkx packages. For this paper, I did not consult the literature related to graph analysis using the Enron Corpus as an example.]
 
 The following were extracted from the SQL database I prepared for my 2010 analysis on the graph portion of this paper.
 
@@ -715,7 +697,7 @@ All emails from January 1, 2000 to December 2, 2001 the date of the [bankruptcy]
 
 A total of `r comma2(unique_users)` unique users are represented. However, all but `r net1_vertex_number` users are non-reciprocating or isolated. To identify those, the sender and recipient userids were extracted and converted to a graph object, which will be referred to as the **reduced Enron corpus.** Its attributes are
 
-```{r, echo=FALSE}
+```{r Capstone2-1, echo=FALSE}
 net1
 ```
 
@@ -731,11 +713,11 @@ Definition of terms:
 
 The graph can be visualized in several ways. Here, and throughout the paper, a representation based on the Fructerman-Reingold force-directed algorithm^[Fruchterman, T. M. and Reingold, E. M. (1991), Graph drawing by force‐directed placement. Softw: Pract. Exper., 21: 1129-1164. doi:10.1002/spe.4380211102] is used to promote visual discrimination. 
 
-```{r, echo=FALSE, results="as-is", comment=NA, message=FALSE,  error = FALSE,  warning=FALSE}
+```{r Capstone2-2, echo=FALSE, results="as-is", comment=NA, message=FALSE,  error = FALSE,  warning=FALSE}
 net0_plot
 ```
 
-```{r, echo=FALSE, results="as-is", comment=NA, message=FALSE,  error = FALSE,  warning=FALSE}
+```{r Capstone2-3, echo=FALSE, results="as-is", comment=NA, message=FALSE,  error = FALSE,  warning=FALSE}
 net1_plot
 ```
 
@@ -745,7 +727,7 @@ Graph objects shown here represent users (vertices) by dots and emails (edges) b
 
 Several groups of outliers are apparent, notably mid-May 2001 and the weeks leading up to the [bankruptcy].
 
-```{r, echo = FALSE, warning=FALSE, message=FALSE}
+```{r Capstone2-4, echo = FALSE, warning=FALSE, message=FALSE}
 ts_plot
 ```
 
@@ -757,14 +739,7 @@ Graph transitivity is a measure of the likelihood that two pairs of vertices (*d
 
 ### Graph measures of user prominence
 
-All of the functions described in this section^[    Rejected measures of graph centrality of vertices:
-* btw <- betweenness(net1) # redundant with ldctr
-* inf <- infocent(net1) all 1.206801e-13
-* cls <- closeness(net1) all 0
-* evc <- evcent(net1, use.eigen = TRUE) net1 not symmetrical
-* bon <- bonpow(net1) Lapack routine dgesv: system is exactly singular error
-* flo <- flowbet(net1) ran 10 minutes without finishing
-* harg <- graphcent(net1) all 0],  `degree`, `loadcent` and `stresscent` have been run with the `rescale = TRUE` option to normalize them. The functions measure the prominent of a vertex in different ways. The `sna::degree` function relies on measures of incoming and outgoing connections. The `sna::loadcent` function 
+All of the functions described in this section^[Rejected measures of graph centrality of vertices: betweenness (redunant with ldctr); infocent (all 1.206801e-13); closeness (all 0); evcent (asymmetry failure); bonpow (system is exactly singular error); flowbet(ran without finishing; graphcent (all 0)],  `degree`, `loadcent` and `stresscent` have been run with the `rescale = TRUE` option to normalize them. The functions measure the prominent of a vertex in different ways. The `sna::degree` function relies on measures of incoming and outgoing connections. The `sna::loadcent` function 
 
 > measures the degree to which a vertex is in a position of brokerage by summing up the fractions of shortest paths between other pairs of vertices that pass through it. [Brandes]^[Brandes, U. (2008). “On Variants of Shortest-Path Betweenness Centrality and their Generic Computation.” Social Networks, 30, 136-145.]
 
@@ -772,46 +747,28 @@ The `sna::stresscent` function is a measure of the shortest number of edges that
 
 #### Degree
 
-The top 25 users ranked by `degree` are:
+A graph of the top 25 users ranked by `degree` as a sender or receiver is shown below.
 
-```{r, echo=FALSE}
-kable(top25_d) %>% kable_styling(bootstrap_options = "striped", full_width = F, position = "center")
-```
-
-
-A graph of these users as a sender or receiver is shown below.
-
-```{r, echo=FALSE}
+```{r Capstone2-6, echo=FALSE}
 net_d_plot
 ```
-
 
 ### Load centrality
 
 The top 25 users ranked by `load centrality` are:
 
-```{r, echo=FALSE}
-kable(top25_l) %>%   kable_styling(bootstrap_options = "striped", full_width = F, position = "center")
-```
+A graph of the top 25 users ranked by `load centrality` as a sender or receiver is shown below.
 
-A graph of these users as a sender or receiver is shown below.
-
-```{r, echo=FALSE}
+```{r Capstone2-8, echo=FALSE}
 net_l_plot
 ```
 
 ### Stress centrality
 
-The top 25 users ranked by `stress centrality` are:
 
-```{r, echo=FALSE}
-kable(top25_s) %>%   kable_styling(bootstrap_options = "striped", full_width = F, position = "center")
+A graph of the top 100 users ranked by `stress centrality users as a sender or receiver is shown below.
 
-```
-
-A graph of the top 100 stress centrality users as a sender or receiver is shown below.
-
-```{r, echo=FALSE}
+```{r Capstone2-10, echo=FALSE}
 net_c_plot
 ```
 
@@ -819,13 +776,10 @@ net_c_plot
 
 Which of these measures to privilege is not clear. They each present different perspectives of the relative importance of each user in the network, based on different criteria, but none presents an obvious candidate by itself. They are, however, moderately well correlated at high degrees of significance.
 
-```{r, echo=FALSE}
+```{r Capstone2-11, echo=FALSE}
 pander::pander(deg_ldctr)
-#kable_styling(bootstrap_options = "striped", full_width = F, position = "center")
 pander::pander(deg_sts)# %>%
-#kable_styling(bootstrap_options = "striped", full_width = F, position = "center")
 pander::pander(ldctr_sts) #%>%
-#kable_styling(bootstrap_options = "striped", full_width = F, position = "center")
 ```
 
 The union and intersection of the top 25 users using each centrality measure were identified and rejected because their use in subsequent latent network identification either failed or produced unfavorable  diagnostics.
@@ -842,7 +796,7 @@ Two latent network analyses were performed. The first selected users who were am
 
 The graph object, prior to modeling, appeared as follows:
 
-```{r, echo = FALSE}
+```{r Capstone2-12, echo = FALSE}
 net_c_plot
 ```
 
@@ -853,51 +807,41 @@ The `latent::ergmm` model was applied to the graph.
 
 The function fits the graph to a latent network model using a Markov chain Monte Carlo algorithm for a Bayesian model fit. The resulting graph visualization identifieds three clusters. Some vertices show pie slices indicating the relative probabilities of belonging to one of the three clusters. The diagnostics include an intercept estimate, confidence intervals, and a p-value, all of which are satisfactory.
 
-```{r, include=TRUE, fig.align="center", fig.cap=c("Latent graph based on stresscent"), echo=FALSE}
-knitr::include_graphics("img/clatentnet.png")
-```
+![Latent graph based on stresscent](img/clatentnet.png){ width=75% }
 
 
-
-```{r}
+```{r Capstone2-14}
 summary(c.fit)
 ```
 
-
 Convergence of the model is shown by diagnostic plots of autocorrelation. The log probability (`lpY`) decreases, as does the probability vector (`beta.1`), and the receiver random effect (`receiver1`). The point estimates Z.1.1 and Z.1.2 are consistent across lags. The following traces and densities unskewed distributions, and the goodness of fit plots are reasonable.
 
-```{r, include=TRUE, fig.align="center", fig.cap=c("MCMC Diagnostics, Part 1"), echo=FALSE}
-knitr::include_graphics("img/cdiag1.png")
-```
 
-```{r, include=TRUE, fig.align="center", fig.cap=c("MCMC Diagnostics, Part 2"), echo=FALSE}
-knitr::include_graphics("img/cdiag2.png")
-```
+![Fit diagnosis part 2](img/cdiag2.png){ width=75% }
 
-```{r, include=TRUE, fig.align="center", fig.cap=c("MCMC Diagnostics, Part 3"), echo=FALSE}
-knitr::include_graphics("img/cdiag3.png")
-```
+![Fit diagnosis part 3](img/cdiag3.png){ width=75% }
 
-Goodness of fit diagnostics for in-degree, out-degree and geodesic distance are provided in tabular format and plots. Some excursions in each of the plots appear, indicating the potential benefit for further model tuning.
-```{r}
+Goodness of fit diagnostics for in-degree, out-degree and geodesic distance are provided in tabular format and plots. Some excursions in each of the plots appear, indicating the potential benefit of further model tuning.
+
+```{r Capstone2-18}
 c.gof
 ```
 
-```{r}
+```{r Capstone2-19}
 plot(c.gof, plotlogodds=TRUE)
 ```
 
 The three clusters can be examined separately.^[Highlighted vertices are those included in the top 100 `stresscent` group.]
 
-```{r}
+```{r Capstone2-20, echo=FALSE}
 clust1_plot
 ```
 
-```{r}
+```{r Capstone2-21, echo=FALSE}
 clust2_plot
 ```
 
-```{r}
+```{r Capstone2-22, echo=FALSE}
 clust3_plot
 ```
 
@@ -907,9 +851,9 @@ Clusters 1 and 3 have the greatest number of vertices and edges. Six  distinct u
 
 Distinct social networks were identified through latent cluster random graph methods. As a by-product, prominent individuals in the network were identified.
 
-Aside from the visually prominent vertices in the plots above, a simple word frequency analysis of the clusters displays markedly differing vocabularies. The clusters are a subset (based on high `stresscent`) score of the larger corpus that has an added field for cluster membership.
+Aside from the visually prominent vertices in the plots above, a simple word frequency analysis of two of the clusters displays markedly differing vocabularies. The third cluster contains no unique terms. strThe clusters are a subset (based on high `stresscent`) score of the larger corpus that has an added field for cluster membership.
 
-Within that cluster are `r comma0(tot_words)` distinct words. Of those, `r comma4((nrow(setdiff(t1,union(t2,t3))))/tot_words*100)`% are unique to Cluster 1;  `r comma4((nrow(setdiff(t1,union(t2,t3))))/tot_words*100)`% are unique to Cluster 2; and  `r comma4((nrow(setdiff(t1,union(t2,t3))))/tot_words*100)`% are unique to Cluster 3.
+Within those clusters are `r comma0(tot_words)` distinct words. Of those, `r comma4((nrow(setdiff(t1,union(t2,t3))))/tot_words*100)`% are unique to Cluster 1;  `r comma4((nrow(setdiff(t2,union(t2,t3))))/tot_words*100)`% are unique to Cluster 2; and  `r comma4((nrow(setdiff(t3,union(t1,t3))))/tot_words*100)`% are unique to Cluster 3.
 
 # Conclusion
 
@@ -1003,125 +947,19 @@ Hadley Wickham (2017). tidyverse: Easily Install and Load the
 https://CRAN.R-project.org/package=tidyverse
 
 # Session Information
-```{r}
-pander::pander(sessinfo)
+```{r Capstone2-23, echo=TRUE}
+sessionInfo()
 ```
 
-# Appendix: failure of latentnetwork models for union and intersection of the three centrality measures
+# Author contact
 
-    # latent from intersection
-		# # failed with burnin = 100000
-		# # top25_i <- intersect(intersect(top25_d,top25_l), top25_s)
-		# # 
-		# # i_enron <- gclean_enron %>% filter(s_uid %in% top25_i$userid &
-		# #                                 r_uid %in% top25_i$userid)
-		# # 
-		# # net_i <- i_enron %>%  select(s_uid, r_uid) %>% netr(.) %>% neti(.)
-		# # net_i_plot <- plot_graph(net_i, "Graph of Enron corpus after filter intersection")
-		# # 
-		# # 
-		# # i.fit <- ergmm(net_i ~ euclidean(d=2, G=3)+rreceiver,
-		# #                control=ergmm.control(burnin = 100000, store.burnin=TRUE), seed = 2203)
-		# # save(u.fit, file = "data/i.fit.Rda")
-		# # load("data/i.fit.Rda")
-		# # mcmc.diagnostics(i.fit)
-		# # plot(i.fit,pie=TRUE,rand.eff="receiver")
-		# # plot(i.fit,what="pmean",rand.eff="receiver")
-		# # plot(i.fit,what="cloud",rand.eff="receiver")
-		# # plot(i.fit,what="density",rand.eff="receiver")
-		# # plot(i.fit,what=5,rand.eff="receiver")
-		# # summary(i.fit)
-		# # 
-		# # # Goodnet of fit
-		# # par(mfrow=c(1,3))
-		# # par(oma=c(0.5,2,1,0.5))
-		# # plot(c1.gof)
-		# # par(op)
-		# # 
-		# # i.gof <- gof(i.fit)
-		# # i.gof.plot <- plot(i.gof, plotlogodds=TRUE)
-		# 
-		# # latent from union of the three measures of centrality
-		# 
-		# top25_u <- union(union(top25_d,top25_l), top25_s)
-		# 
-		# u_enron <- gclean_enron %>% filter(s_uid %in% top25_u$userid &
-		#                                 r_uid %in% top25_u$userid)
-		# 
-		# net_u <- u_enron %>%  select(s_uid, r_uid) %>% netr(.) %>% neti(.)
-		# net_u_plot <- plot_graph(net_u, "Graph of Enron corpus after filter union")
-		# 
-		# #u.fit <- ergmm(net_u ~ euclidean(d=2, G=3)+rreceiver,
-		# #               control=ergmm.control(store.burnin=TRUE), seed = 2203)
-		# #save(u.fit, file = "data/u.fit.Rda")
-		# load("data/u.fit.Rda")
-		# pdf("img/u_mcmc_diagnostics.pdf", onefile=FALSE)
-		# mcmc.diagnostics(u.fit)
-		# dev.off()
-		# plot(u.fit,pie=TRUE,rand.eff="receiver")
-		# summary(u.fit)
-		# 
-		# # Goodnet of fit
-		# u.gof <- gof(u.fit)
-		# par(mfrow=c(1,3))
-		# par(oma=c(0.5,2,1,0.5))
-		# plot(u.gof)
-		# u.gof.plot <- plot(u.gof, plotlogodds=TRUE)
-			# u.gof.plot
-
-# Appendix: abandoned intersection model of top 100 stresscent users
-
-# u_net <- c_enron %>% netr(.) %>% neti(.)
-		# net_u_plot <- plot_graph(u_net, "Graph of Enron corpus, stresscent union")
-		# 
-		# 
-		# #c.fit <- ergmm(net_c ~ euclidean(d=2, G=3)+rreceiver,
-		# #                control=ergmm.control(store.burnin=TRUE), seed = 2203)
-		# #save(c.fit, file = "data/c.fit.Rda")
-		# load("data/c.fit.Rda")
-		# pdf("img/c.mcmc.diagnostics.Rda")
-		# mcmc.diagnostics(c.fit)
-		# dev.off()
-		# par(mfrow=c(1,1))
-		# plot(c.fit,pie=TRUE,rand.eff="receiver")
-		# summary(c.fit)
-		# 
-		# # Goodnet of fit
-		# 
-		# c.gof <- gof(c.fit)
-		# par(mfrow=c(1,3))
-		# par(oma=c(0.5,2,1,0.5))
-		# plot(c.gof)
-		# par(mfrow=c(1,3))
-		# par(oma=c(0.5,2,1,0.5))
-		# plot(c.gof, plotlogodds=TRUE)# u_net <- c_enron %>% netr(.) %>% neti(.)
-		# net_u_plot <- plot_graph(u_net, "Graph of Enron corpus, stresscent union")
-		# 
-		# 
-		# #c.fit <- ergmm(net_c ~ euclidean(d=2, G=3)+rreceiver,
-		# #                control=ergmm.control(store.burnin=TRUE), seed = 2203)
-		# #save(c.fit, file = "data/c.fit.Rda")
-		# load("data/c.fit.Rda")
-		# pdf("img/c.mcmc.diagnostics.Rda")
-		# mcmc.diagnostics(c.fit)
-		# dev.off()
-		# par(mfrow=c(1,1))
-		# plot(c.fit,pie=TRUE,rand.eff="receiver")
-		# summary(c.fit)
-		# 
-		# # Goodnet of fit
-		# 
-		# c.gof <- gof(c.fit)
-		# par(mfrow=c(1,3))
-		# par(oma=c(0.5,2,1,0.5))
-		# plot(c.gof)
-		# par(mfrow=c(1,3))
-		# par(oma=c(0.5,2,1,0.5))
-		# plot(c.gof, plotlogodds=TRUE)
-
-```{r, echo=FALSE}
-# urls
-```
+\begin{verbatim}
+Richard Careaga
+public@careaga.net
+@technocrat
+PO Box 3325
+Kirkland, WA 98083
+\end{verbatim}
 
 [2009 version]:https://www.cs.cmu.edu/~./enron/
 
