@@ -1020,3 +1020,4 @@ Kirkland, WA 98083
 [Tidytext]:https://www.tidytextmining.com/
 
 [Wolak report]:http://www.caiso.com/Documents/ReportonRedesign-CaliforniaReal-TimeEnergyandAncillaryServicesMarkets.pdf
+
