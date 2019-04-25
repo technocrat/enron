@@ -1,17 +1,18 @@
 ---
 title: "Social Network Analysis of the Enron Corpus"
 author: Richard Careaga
-date: April 24, 2019
-email: public@careaga.net
+date: April 25, 2019
 output: hrbrthemes::ipsum_pdf
 urlcolor: blue
 
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE,  dev = "cairo_pdf", message = FALSE, warning = FALSE, cache = TRUE)
+knitr::opts_chunk$set(echo = TRUE,  dev = "cairo_pdf", message = FALSE, warning = FALSE)
 
 suppressPackageStartupMessages(library(coda))
+suppressPackageStartupMessages(library(Cairo))
+suppressPackageStartupMessages(library(extrafont))
 suppressPackageStartupMessages(library(ggnetwork))
 suppressPackageStartupMessages(library(here))
 suppressPackageStartupMessages(library(ergm))
@@ -19,7 +20,6 @@ suppressPackageStartupMessages(library(GGally))
 suppressPackageStartupMessages(library(ggnetwork))
 suppressPackageStartupMessages(library(ggthemes))
 suppressPackageStartupMessages(library(hrbrthemes))
-suppressPackageStartupMessages(library(kableExtra))
 suppressPackageStartupMessages(library(knitr))
 suppressPackageStartupMessages(library(latentnet))
 suppressPackageStartupMessages(library(network))
@@ -29,6 +29,7 @@ suppressPackageStartupMessages(library(statnet))
 suppressPackageStartupMessages(library(statnet.common))
 suppressPackageStartupMessages(library(tidytext))
 suppressPackageStartupMessages(library(tidyverse))
+
 
 # make reproducible
 
@@ -85,6 +86,8 @@ plot_graph <- function(x,y) {
     labs(title="Graph of reduced Enron corpus",
          subtitle= y,
          caption="Source: Richard Careaga")			  +
+    xlab(NULL)                                    +
+    ylab(NULL)                                    +    
     theme_ipsum_rc()                              +
     theme(legend.position = "none")
 }
@@ -98,10 +101,12 @@ plot_graph_w_nodes <- function(x,y) {
     geom_nodetext(aes(label = vertex.names,
                       color = sts))               +
     scale_colour_gradient(low = "white",
-                          high = "black")           +
+                          high = "black")         +
     labs(title="Graph of reduced Enron corpus",
          subtitle= y,
          caption="Source: Richard Careaga")			  +
+    xlab(NULL)                                    +
+    ylab(NULL)                                    +
     theme_ipsum_rc()		                        	+
     guides(color = FALSE)                         +
     theme_void()
@@ -141,6 +146,7 @@ g_enron <- enron 								                		  %>%
 # restrict to single recipients
 g_enron <- g_enron %>% filter(tosctn == 1 & ccsctn == 0)
 singlets <- nrow(g_enron)
+
 # censor non-enron addresses and reduce fields
 
 g_enron <- g_enron                      %>%
@@ -203,7 +209,6 @@ g_enron <- g_enron %>% filter(recipient %out% excluded_users)
 size_of_g_enron_no_broadcast <- nrow(g_enron)
 
 # censor emails before 1999-12-31 and after 2001-12-02 and sort
-# censor empty rows
 
 g_enron <- g_enron            %>%
   filter(date > "1999-12-31") %>%
@@ -214,8 +219,6 @@ g_enron <- g_enron            %>%
 size_of_g_enron_2000 <- nrow(g_enron)
 
 # end data cleansing
-
-# create unique identifiers for users to create graph object
 
 # collect unique user names
 
@@ -239,7 +242,6 @@ userid <- bind_cols(users, userid)
 
 #save(userid, file = "data/userid.Rda")
 
-
 # for Rmd
 
 unique_users <- nrow(userid)
@@ -258,7 +260,7 @@ gclean_enron <- g_enron
 
 # "the reduced Enron corpus"
 
-# remove unneed objects from namespace
+# remove unneeded objects from namespace
 
 rm(con, enron, g_enron, faux_nl, left_brak, quote_s, recipient, right_brak, sender,
    user_pool, userid, users)
@@ -381,6 +383,8 @@ s_enron <- gclean_enron %>% filter(s_uid %in% top25_s$userid &
                                      r_uid %in% top25_s$userid)
 net_s <- s_enron %>%  select(s_uid, r_uid) %>% netr(.) %>% neti(.)
 net_s_plot <- plot_graph(net_s, "Graph of Enron corpus after stresscent filter")
+
+# remove unneeded objects from namespace
 
 rm(d_enron, l_enron, s_enron, net_d, net_l, net_s)
 
@@ -595,7 +599,7 @@ In less than a year, Enron underwent a complete reversal of fortune as its busin
 
 FERC [became aware] of irregularities in the California wholesale electricity market prices, a business in which Enron participated. An orientation to the issues is provided by [testimony] before FERC, which  provides a concise summary.^[The short version, which I can relate as a former California electric utility regulatory official from personal knowledge, is that public electric utilities were losing a large share of industrial customers to self-generation. Many businesses found it cheaper to generate on-site than to pay tariff rates. Foreseeably, residential and business customers without the option to self-generate would come to  bear the entire cost of unamortized utility fixed assets (termed *stranded costs*), and rates for retail, commercial and small industrial customers would increase. The adopted solution was to require the utilities to sell their generation plants and buy power on a new public market on a *day-ahead*, tomorrow's estimated demand, and an *hour-ahead* basis for unanticipated demand. Although much thought was devoted to the dangers that participants would game the system to sell at premiums or buy at discounts from market, insufficient consideration was given to multi-participant cooperation.]
 
-Following Enron's bankruptcy, intensified its investigation, including examining the email records of 149 Enron employees. A preliminary [staff report] issued six months later.
+Following Enron's bankruptcy, FERC intensified its investigation, including examining the email records of 149 Enron employees. A preliminary [staff report] issued six months later.
 
 ## Motivating Data
 
@@ -643,7 +647,9 @@ The principal fields used in this paper are:
 
 Each email was a plaintext file^[Most had been generated by Microsoft Outlook, but some older emails were produced in IBM Notes, which created some character encoding issues.] Each user had a directory tree similar to the one below.^[This user had 10 directories with 3048 files (the directory tree illustration has been pruned to omit spurious detail) containing 12,147 lines and 69,226 words.]
 
-![Typical user data tree](img/dtree.jpg)
+```{r , echo=FALSE, fig.cap="Typical user data", out.width = '100%'}
+knitr::include_graphics("https://s3-us-west-2.amazonaws.com/dslabs.nostromo/dtree.png")
+```
 
 Although tedious, traversing the directory tree, parsing the emails and loading them into an SQL database, was accomplished with a combination of Python and Perl scripting and standard bash tools. I do not reproduce that process here as it has little bearing on the main topic of this paper.^[For this paper, supplemental processing of the recipient field was necessary and reflected in the script to remove spurious punctuation, such as the newline character embedded as slash-n.]
 
@@ -651,7 +657,9 @@ Although tedious, traversing the directory tree, parsing the emails and loading 
 
 While the emails were not in native format, the plain text versions contained nine principal segments, as shown in the figure below
 
-![Structural analysis of an Enron email](img/parse_email.png)
+```{r , echo=FALSE, fig.cap="Structural analysis of an Enron email", out.width = '100%'}
+knitr::include_graphics("https://s3-us-west-2.amazonaws.com/dslabs.nostromo/parseemail.png")
+```
 
 ### Deduplication
 
@@ -675,9 +683,9 @@ The third filter limited the dataset to emails sent before Enron's December 2, 2
 
 ### The nature of social networks
 
-Following the reduction of the corpus, the remaining senders and receivers were natural persons who engaged in mutual correspondence. These constitute `nodes` or `vertices` and their emails `edges`^[Or `arcs`, when directionality is considered]. Draw three points and connect them, and you have created three nodes and three edges, a triage, which is termed a `graph` object. A graph object encapsulates many useful features aside from who knows whom^[Such as the parlor game [six degrees of Kevin Bacon]] including measures of density, centrality, connectedness, separation, clustering and other indicia of how well or poorly embedded in an organization any individual may stand.
+Following the reduction of the corpus, the remaining senders and receivers were natural persons who engaged in mutual correspondence. These constitute `nodes` or `vertices` and their emails `edges`^[Or `arcs`, when directionality is considered]. Draw three points and connect them, and you have created three nodes and three edges, a triangle, which is termed a `triad graph` object. A graph object encapsulates many useful features aside from who knows whom^[Such as the parlor game [six degrees of Kevin Bacon]], including measures of density, centrality, connectedness, separation, clustering and other indicia of how well or poorly embedded in an organization any individual may stand.
 
-Graphs are potentially computationally intensive, which motivated the initial reduction of the selection of emails and users to approximately 1.4% of the emails available for examination. In addition, moving from bigraph directed network to multidirected graph^[A multidirected graph has a single edge to multiple vertices; the analysis is beyond the scope of a term paper for a network as large as the Enron Corpus.]
+Graphs are potentially computationally intensive, which motivated the initial reduction of the selection of emails and users to approximately 1.4% of the emails available for examination. In addition, moving from bigraph directed network to multidirected graph^[A multidirected graph has a single edge to multiple vertices; the analysis is beyond the scope of a term paper for a network as large as the Enron Corpus.] was infeasible.
 
 Graphs are not only a processing unit, they constitute the domain of their own branch of mathematics.^[*See, e.g.*, the brief tutorial by [Keijo Ruohonen]].
 
@@ -695,7 +703,7 @@ All emails from January 1, 2000 to December 2, 2001 the date of the [bankruptcy]
 
 ### Users
 
-A total of `r comma2(unique_users)` unique users are represented. However, all but `r net1_vertex_number` users are non-reciprocating or isolated. To identify those, the sender and recipient userids were extracted and converted to a graph object, which will be referred to as the **reduced Enron corpus.** Its attributes are
+A total of `r comma2(net0_vertex_number)` unique users are represented. However, all but `r net1_vertex_number` users are non-reciprocating or isolated. To identify those, the sender and recipient userids were extracted and converted to a graph object, which will be referred to as the **reduced Enron corpus.** Its attributes are
 
 ```{r Capstone2-1, echo=FALSE}
 net1
@@ -733,13 +741,13 @@ ts_plot
 
 ### Transitivity
 
-Graph transitivity is a measure of the likelihood that two pairs of vertices (*dyads*) are likely to be strongly  connected $A->B->C => A->C$ in the weak form and $A->B->C <=> A->C$ in the strong form. The `sna:gtrans` strong form measure for the graph is `r round(gt.cg,2)`
+Graph transitivity is a measure of the likelihood that two pairs of vertices (*dyads*) are likely to be strongly  connected $A->B->C => A->C$ in the weak form and $A->B->C <=> A->C$ in the strong form. The `sna:gtrans` strong form measure for the graph is `r round(gt.cg,4)`
 
 ## User prominence
 
 ### Graph measures of user prominence
 
-All of the functions described in this section^[Rejected measures of graph centrality of vertices: betweenness (redunant with ldctr); infocent (all 1.206801e-13); closeness (all 0); evcent (asymmetry failure); bonpow (system is exactly singular error); flowbet(ran without finishing; graphcent (all 0)],  `degree`, `loadcent` and `stresscent` have been run with the `rescale = TRUE` option to normalize them. The functions measure the prominent of a vertex in different ways. The `sna::degree` function relies on measures of incoming and outgoing connections. The `sna::loadcent` function 
+All of the functions described in this section^[Rejected measures of graph centrality of vertices: betweenness (redunant with ldctr); infocent (all 1.206801e-13); closeness (all 0); evcent (asymmetry failure); bonpow (system is exactly singular error); flowbet(ran without finishing); graphcent (all 0)],  `degree`, `loadcent` and `stresscent` have been run with the `rescale = TRUE` option to normalize them. The functions measure the prominent of a vertex in different ways. The `sna::degree` function relies on measures of incoming and outgoing connections. The `sna::loadcent` function 
 
 > measures the degree to which a vertex is in a position of brokerage by summing up the fractions of shortest paths between other pairs of vertices that pass through it. [Brandes]^[Brandes, U. (2008). “On Variants of Shortest-Path Betweenness Centrality and their Generic Computation.” Social Networks, 30, 136-145.]
 
@@ -755,8 +763,6 @@ net_d_plot
 
 ### Load centrality
 
-The top 25 users ranked by `load centrality` are:
-
 A graph of the top 25 users ranked by `load centrality` as a sender or receiver is shown below.
 
 ```{r Capstone2-8, echo=FALSE}
@@ -764,7 +770,6 @@ net_l_plot
 ```
 
 ### Stress centrality
-
 
 A graph of the top 100 users ranked by `stress centrality users as a sender or receiver is shown below.
 
@@ -788,9 +793,9 @@ Stress centrality was selected because it correlated best with the other two met
 
 ### Latent network analysis
 
-Using the top 100 `stresscent` users (rather than the top 25) yields `r comma2(size_of_core )` vertices.
+Using the top 100 `stresscent` users (rather than the top 25) yields `r comma2(size_of_core)` edges, each representing an email.
 
-Two latent network analyses were performed. The first selected users who were among the top 100 whether *both* as sender or recipient. The second selected users who were among the top 100 *either* as sender or receiver; that model failed to complete within two hours and was discarded
+Two latent network analyses were performed. The first selected users who were among the top 100 if they appeared  *both* as sender and recipient. The second selected users who were among the top 100 *either* as sender or receiver; that model failed to complete within two hours and was discarded.
 
 #### The latent cluster random model of senders and receivers
 
@@ -802,12 +807,14 @@ net_c_plot
 
 The `latent::ergmm` model was applied to the graph.
 
-    c.fit <- ergmm(net_c1 ~ euclidean(d=2, G=3)+rreceiver,
+    c.fit <- ergmm(net_c ~ euclidean(d=2, G=3)+rreceiver,
           control=ergmm.control(store.burnin=TRUE), seed = 2203)
 
 The function fits the graph to a latent network model using a Markov chain Monte Carlo algorithm for a Bayesian model fit. The resulting graph visualization identifieds three clusters. Some vertices show pie slices indicating the relative probabilities of belonging to one of the three clusters. The diagnostics include an intercept estimate, confidence intervals, and a p-value, all of which are satisfactory.
 
-![Latent graph based on stresscent](img/clatentnet.png){ width=75% }
+```{r , echo=FALSE, fig.cap="Latent graph based on stresscent", out.width = '75%'}
+knitr::include_graphics("https://s3-us-west-2.amazonaws.com/dslabs.nostromo/clatentnet.png")
+```
 
 
 ```{r Capstone2-14}
@@ -816,10 +823,29 @@ summary(c.fit)
 
 Convergence of the model is shown by diagnostic plots of autocorrelation. The log probability (`lpY`) decreases, as does the probability vector (`beta.1`), and the receiver random effect (`receiver1`). The point estimates Z.1.1 and Z.1.2 are consistent across lags. The following traces and densities unskewed distributions, and the goodness of fit plots are reasonable.
 
+```{r , echo=FALSE, fig.cap="Fit diagnosis part 1", out.width = '75%'}
+knitr::include_graphics("https://s3-us-west-2.amazonaws.com/dslabs.nostromo/cdiag1.png")
+```
 
-![Fit diagnosis part 2](img/cdiag2.png){ width=75% }
+```{r , echo=FALSE, fig.cap="Fit diagnosis part 2", out.width = '75%'}
+knitr::include_graphics("https://s3-us-west-2.amazonaws.com/dslabs.nostromo/cdiag2.png")
+```
 
-![Fit diagnosis part 3](img/cdiag3.png){ width=75% }
+
+```{r , echo=FALSE, fig.cap="Fit diagnosis part 3", out.width = '75%'}
+knitr::include_graphics("https://s3-us-west-2.amazonaws.com/dslabs.nostromo/cdiag3.png")
+```
+
+
+```{r , echo=FALSE, fig.cap="Goodness of fit part 1", out.width = '75%'}
+knitr::include_graphics("https://s3-us-west-2.amazonaws.com/dslabs.nostromo/cdiag4.png")
+```
+
+```{r , echo=FALSE, fig.cap="Goodness of fit part 2", out.width = '75%'}
+knitr::include_graphics("https://s3-us-west-2.amazonaws.com/dslabs.nostromo/cdiag5.png")
+```
+
+
 
 Goodness of fit diagnostics for in-degree, out-degree and geodesic distance are provided in tabular format and plots. Some excursions in each of the plots appear, indicating the potential benefit of further model tuning.
 
@@ -827,9 +853,6 @@ Goodness of fit diagnostics for in-degree, out-degree and geodesic distance are 
 c.gof
 ```
 
-```{r Capstone2-19}
-plot(c.gof, plotlogodds=TRUE)
-```
 
 The three clusters can be examined separately.^[Highlighted vertices are those included in the top 100 `stresscent` group.]
 
@@ -853,7 +876,10 @@ Distinct social networks were identified through latent cluster random graph met
 
 Aside from the visually prominent vertices in the plots above, a simple word frequency analysis of two of the clusters displays markedly differing vocabularies. The third cluster contains no unique terms. strThe clusters are a subset (based on high `stresscent`) score of the larger corpus that has an added field for cluster membership.
 
-Within those clusters are `r comma0(tot_words)` distinct words. Of those, `r comma4((nrow(setdiff(t1,union(t2,t3))))/tot_words*100)`% are unique to Cluster 1;  `r comma4((nrow(setdiff(t2,union(t2,t3))))/tot_words*100)`% are unique to Cluster 2; and  `r comma4((nrow(setdiff(t3,union(t1,t3))))/tot_words*100)`% are unique to Cluster 3.
+Within those clusters are `r comma0(tot_words)` distinct words. Of those, 
+`r comma4(t1_unique_pct)`% are unique to Cluster 1;  
+`r comma4(t2_unique_pct)`% are unique to Cluster 2; and
+`r comma4(t3_unique_pct)`% are unique to Cluster 3.
 
 # Conclusion
 
@@ -861,9 +887,17 @@ The hypothesis of this paper is that social network analysis preprocessing of em
 
 # Credits
 
+Simon Urbanek and Jeffrey Horner (2019). Cairo: R Graphics Device
+using Cairo Graphics Library for Creating High-Quality Bitmap (PNG,
+JPEG, TIFF), Vector (PDF, SVG, PostScript) and Display (X11 and
+Win32) Output. R package version 1.5-10.  https://CRAN.R-project.org/package=Cairo
+
 Martyn Plummer, Nicky Best, Kate Cowles and Karen Vines (2006). CODA:
 Convergence Diagnosis and Output Analysis for MCMC, R News, vol 6,
 7-11
+
+Winston Chang, (2014). extrafont: Tools for using fonts. R package
+version 0.17. https://CRAN.R-project.org/package=extrafont
 
 Francois Briatte (2016). ggnetwork: Geometries to Plot Networks with
 'ggplot2'. R package version 0.5.1.
@@ -894,13 +928,8 @@ Jeffrey B. Arnold (2019). ggthemes: Extra Themes, Scales and Geoms
 for 'ggplot2'. R package version 4.1.1.
 https://CRAN.R-project.org/package=ggthemes
 
-Bob Rudis (2019). hrbrthemes: Additional Themes, Theme Components and
-Utilities for 'ggplot2'. R package version 0.6.0.
+Bob Rudis (2019). hrbrthemes: Additional Themes, Theme Components and Utilities for 'ggplot2'. R package version 0.6.0.
 https://CRAN.R-project.org/package=hrbrthemes
-
-Hao Zhu (2019). kableExtra: Construct Complex Table with 'kable' and
-Pipe Syntax. R package version 1.1.0.
-https://CRAN.R-project.org/package=kableExtra
 
 Yihui Xie (2019). knitr: A General-Purpose Package for Dynamic Report Generation in R. R package version
 1.22. Yihui Xie (2015) Dynamic Documents with R and knitr. 2nd edition. Chapman and Hall/CRC. ISBN
@@ -947,7 +976,7 @@ Hadley Wickham (2017). tidyverse: Easily Install and Load the
 https://CRAN.R-project.org/package=tidyverse
 
 # Session Information
-```{r Capstone2-23, echo=TRUE}
+```{r Capstone2-23, echo=FALSE}
 sessionInfo()
 ```
 
