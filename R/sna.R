@@ -72,6 +72,8 @@ plot_graph <- function(x,y) {
     labs(title="Graph of reduced Enron corpus",
          subtitle= y,
          caption="Source: Richard Careaga")			  +
+    xlab(NULL)                                    +
+    ylab(NULL)                                    +
     theme_ipsum_rc()                              +
     theme(legend.position = "none")
 }
@@ -85,14 +87,17 @@ plot_graph_w_nodes <- function(x,y) {
     geom_nodetext(aes(label = vertex.names,
                       color = sts))               +
     scale_colour_gradient(low = "white",
-                          high = "black")           +
+                          high = "black")         +
     labs(title="Graph of reduced Enron corpus",
          subtitle= y,
          caption="Source: Richard Careaga")			  +
+    xlab(NULL)                                    +
+    ylab(NULL)                                    +
     theme_ipsum_rc()		                        	+
     guides(color = FALSE)                         +
     theme_void()
 }
+
 
 # end functions
 
@@ -104,11 +109,9 @@ right_brak	<-	"\\]"
 quote_s     <-  "'"
 
 # load source data
-# con <- url("https://s3-us-west-2.amazonaws.com/dslabs.nostromo/enron.Rda")
-# load(con)
-# close(con)
-#save(enron, file = "data/enron.Rda")
-load("data/enron.Rda")
+con <- url("https://s3-us-west-2.amazonaws.com/dslabs.nostromo/enron.Rda")
+load(con)
+close(con)
 
 # save for Rmd inline
 
@@ -126,8 +129,10 @@ g_enron <- enron 								                		  %>%
   mutate(tos = str_replace_all(tos, quote_s, ""))
 
 # restrict to single recipients
+
 g_enron <- g_enron %>% filter(tosctn == 1 & ccsctn == 0)
 singlets <- nrow(g_enron)
+
 # censor non-enron addresses and reduce fields
 
 g_enron <- g_enron                      %>%
@@ -285,6 +290,7 @@ net0_plot <- plot_graph(net0, "Graph of Enron corpus with isolates")
 # net1, removing isolates
 
 net1 <- net0 %>% neti(.)
+net1_vertex_number <- census(net1)
 
 # for Rmd
 
@@ -298,9 +304,7 @@ net1_plot <- plot_graph(net1, "Graph of Enron corpus without isolates")
 # for Rmd
 
 # High transitivity
-#gt.cg <- gtrans(net1, measure = "strong", use.adjacency = FALSE)
-#save(gt.cg, file = "data/gt.cg.Rda")
-load("data/gt.cg.Rda")
+gt.cg <- gtrans(net1, measure = "strong", use.adjacency = FALSE)
 
 # Assess measures of centrality on de-isolated graph net1
 
@@ -377,10 +381,8 @@ c_enron <- gclean_enron %>% filter(s_uid %in% top100_s$userid &
                                      r_uid %in% top100_s$userid)
 net_c <- c_enron %>% netr(.) %>% neti(.)
 net_c_plot <- plot_graph(net_c, "Graph of Enron corpus, both sender and receiver")
-#c.fit <- ergmm(net_c ~ euclidean(d=2, G=3)+rreceiver,
-#               control=ergmm.control(store.burnin=TRUE), seed = 2203)
-#save(c.fit, file = "data/c.fit.Rda")
-load("data/c.fit.Rda")
+c.fit <- ergmm(net_c ~ euclidean(d=2, G=3)+rreceiver,
+               control=ergmm.control(store.burnin=TRUE), seed = 2203)
 plot(c.fit,pie=TRUE,rand.eff="receiver")
 mcmc.diagnostics(c.fit)
 summary(c.fit)
@@ -417,9 +419,6 @@ c_enron <- left_join(c_enron, c.gc)
 
 # n_enron for "network"
 n_enron <- c_enron
-
-#save(n_enron, file = "data/n_enron.Rda")
-#load("data/n_enron.Rda")
 
 # subset by _glc
 
