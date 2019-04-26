@@ -122,11 +122,11 @@ right_brak	<-	"\\]"
 quote_s     <-  "'"
 
 # load source data
-# con <- url("https://s3-us-west-2.amazonaws.com/dslabs.nostromo/enron.Rda")
-# load(con)
-# close(con)
-#save(enron, file = "data/enron.Rda")
-load("data/enron.Rda")
+
+con <- url("https://s3-us-west-2.amazonaws.com/dslabs.nostromo/enron.Rda")
+load(con)
+close(con)
+
 
 # save for Rmd inline
 
@@ -240,8 +240,6 @@ userid <- enframe(sample(user_pool, nrow(users), replace = FALSE))  %>%
 
 userid <- bind_cols(users, userid)
 
-#save(userid, file = "data/userid.Rda")
-
 # for Rmd
 
 unique_users <- nrow(userid)
@@ -313,9 +311,8 @@ net1_plot <- plot_graph(net1, "Graph of Enron corpus without isolates")
 # for Rmd
 
 # High transitivity
-#gt.cg <- gtrans(net1, measure = "strong", use.adjacency = FALSE)
-#save(gt.cg, file = "data/gt.cg.Rda")
-load("data/gt.cg.Rda")
+
+gt.cg <- gtrans(net1, measure = "strong", use.adjacency = FALSE)
 
 # Assess measures of centrality on de-isolated graph net1
 
@@ -323,17 +320,6 @@ load("data/gt.cg.Rda")
 deg   <- degree(net1, rescale = TRUE)
 ldctr <- loadcent(net1, rescale = TRUE)
 sts   <- stresscent(net1, rescale = TRUE)
-
-# rejected measures of centrality
-
-# btw <- betweenness(net1) # redundant with ldctr
-# inf <- infocent(net1) all 1.206801e-13
-# cls <- closeness(net1) all 0
-# evc <- evcent(net1, use.eigen = TRUE) net1 not symmetrical
-# bon <- bonpow(net1) Lapack routine dgesv: system is exactly singular:
-# flo <- flowbet(net1) ran 10 minutes without finishing
-# flo <- flowbet(net1, cmode = "normflow") ditto
-# harg <- graphcent(net1) all 0
 
 vertices    <- net1 %v% 'vertex.names'
 vertices    <- enframe(vertices) %>% rename(userid = value) %>% select(-name)
@@ -349,7 +335,6 @@ prom_with_ctrs <- nrow(prominence)
 deg_ldctr <- cor.test(deg,ldctr)  # 0.6786184
 deg_sts   <- cor.test(deg,sts)    # 0.8656096
 ldctr_sts <- cor.test(ldctr,sts)  # 0.7176663
-
 
 top25_d <- prominence %>% arrange(desc(deg)) %>% head(25) %>% select(userid)
 top25_l <- prominence %>% arrange(desc(ldctr)) %>% head(25) %>% select(userid)
@@ -394,10 +379,8 @@ c_enron <- gclean_enron %>% filter(s_uid %in% top100_s$userid &
                                      r_uid %in% top100_s$userid)
 net_c <- c_enron %>% netr(.) %>% neti(.)
 net_c_plot <- plot_graph(net_c, "Graph of Enron corpus, both sender and receiver")
-#c.fit <- ergmm(net_c ~ euclidean(d=2, G=3)+rreceiver,
-#               control=ergmm.control(store.burnin=TRUE), seed = 2203)
-#save(c.fit, file = "data/c.fit.Rda")
-load("data/c.fit.Rda")
+c.fit <- ergmm(net_c ~ euclidean(d=2, G=3)+rreceiver,
+               control=ergmm.control(store.burnin=TRUE), seed = 2203)
 plot(c.fit,pie=TRUE,rand.eff="receiver")
 mcmc.diagnostics(c.fit)
 summary(c.fit)
@@ -416,7 +399,6 @@ plot(c.gof, plotlogodds=TRUE)
 
 size_of_core <- nrow(c_enron)
 
-
 #Map userids to clusters
 
 c.gc <-  enframe(c.fit$mkl$Z.K) %>%
@@ -434,10 +416,8 @@ c.gc <- c.gc %>% rename(r_uid = s_uid, r_gcl = s_gcl)
 c_enron <- left_join(c_enron, c.gc)
 
 # n_enron for "network"
-n_enron <- c_enron
 
-#save(n_enron, file = "data/n_enron.Rda")
-#load("data/n_enron.Rda")
+n_enron <- c_enron
 
 # subset by _glc
 
@@ -539,8 +519,6 @@ t3_unique <- setdiff(t1,union(t1,t2))
 t3_unique_pct <- nrow(t3_unique)/tot_words
 
 # End of program
-
-sessinfo <- sessionInfo()
 
 ```
 
