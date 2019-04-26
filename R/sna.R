@@ -1,3 +1,8 @@
+# sna.R social network analysis of Enron emails
+# HarvardX Ph125.9x Capstone 2: user nostromo, Richard Careaga
+# 2019-04-25
+
+
 suppressPackageStartupMessages(library(coda))
 suppressPackageStartupMessages(library(ggnetwork))
 suppressPackageStartupMessages(library(here))
@@ -98,7 +103,6 @@ plot_graph_w_nodes <- function(x,y) {
     theme_void()
 }
 
-
 # end functions
 
 # email recipient cleanser patterns
@@ -195,7 +199,6 @@ g_enron <- g_enron %>% filter(recipient %out% excluded_users)
 size_of_g_enron_no_broadcast <- nrow(g_enron)
 
 # censor emails before 1999-12-31 and after 2001-12-02 and sort
-# censor empty rows
 
 g_enron <- g_enron            %>%
   filter(date > "1999-12-31") %>%
@@ -206,8 +209,6 @@ g_enron <- g_enron            %>%
 size_of_g_enron_2000 <- nrow(g_enron)
 
 # end data cleansing
-
-# create unique identifiers for users to create graph object
 
 # collect unique user names
 
@@ -229,9 +230,6 @@ userid <- enframe(sample(user_pool, nrow(users), replace = FALSE))  %>%
 
 userid <- bind_cols(users, userid)
 
-#save(userid, file = "data/userid.Rda")
-
-
 # for Rmd
 
 unique_users <- nrow(userid)
@@ -250,7 +248,7 @@ gclean_enron <- g_enron
 
 # "the reduced Enron corpus"
 
-# remove unneed objects from namespace
+# remove unneeded objects from namespace
 
 rm(con, enron, g_enron, faux_nl, left_brak, quote_s, recipient, right_brak, sender,
    user_pool, userid, users)
@@ -303,26 +301,17 @@ net1_plot <- plot_graph(net1, "Graph of Enron corpus without isolates")
 
 # for Rmd
 
-# High transitivity
+# High transitivity: note to users--this may take up to 30 minutes
+
 gt.cg <- gtrans(net1, measure = "strong", use.adjacency = FALSE)
 
 # Assess measures of centrality on de-isolated graph net1
 
 # calculate measures of centrality
+
 deg   <- degree(net1, rescale = TRUE)
 ldctr <- loadcent(net1, rescale = TRUE)
 sts   <- stresscent(net1, rescale = TRUE)
-
-# rejected measures of centrality
-
-# btw <- betweenness(net1) # redundant with ldctr
-# inf <- infocent(net1) all 1.206801e-13
-# cls <- closeness(net1) all 0
-# evc <- evcent(net1, use.eigen = TRUE) net1 not symmetrical
-# bon <- bonpow(net1) Lapack routine dgesv: system is exactly singular:
-# flo <- flowbet(net1) ran 10 minutes without finishing
-# flo <- flowbet(net1, cmode = "normflow") ditto
-# harg <- graphcent(net1) all 0
 
 vertices    <- net1 %v% 'vertex.names'
 vertices    <- enframe(vertices) %>% rename(userid = value) %>% select(-name)
@@ -335,10 +324,9 @@ prom_with_ctrs <- nrow(prominence)
 
 # For Rmd
 
-deg_ldctr <- cor.test(deg,ldctr)  # 0.6786184
-deg_sts   <- cor.test(deg,sts)    # 0.8656096
-ldctr_sts <- cor.test(ldctr,sts)  # 0.7176663
-
+deg_ldctr <- cor.test(deg,ldctr)
+deg_sts   <- cor.test(deg,sts)
+ldctr_sts <- cor.test(ldctr,sts)
 
 top25_d <- prominence %>% arrange(desc(deg)) %>% head(25) %>% select(userid)
 top25_l <- prominence %>% arrange(desc(ldctr)) %>% head(25) %>% select(userid)
@@ -418,6 +406,7 @@ c.gc <- c.gc %>% rename(r_uid = s_uid, r_gcl = s_gcl)
 c_enron <- left_join(c_enron, c.gc)
 
 # n_enron for "network"
+
 n_enron <- c_enron
 
 # subset by _glc
