@@ -512,11 +512,11 @@ t1_pct <- t1_words/tot_words
 t2t3 <- union(t2,t3)
 t2t3_pct <- nrow(t2t3)/tot_words
 t1_unique <- setdiff(t1,union(t2,t3))
-t1_unique_pct <- nrow(t1_unique)/tot_words
+t1_unique_pct <- nrow(t1_unique)/tot_words * 100
 t2_unique <- setdiff(t2,union(t1,t3))
-t2_unique_pct <- nrow(t2_unique)/tot_words
+t2_unique_pct <- nrow(t2_unique)/tot_words * 100
 t3_unique <- setdiff(t1,union(t1,t2))
-t3_unique_pct <- nrow(t3_unique)/tot_words
+t3_unique_pct <- nrow(t3_unique)/tot_words * 100
 
 # End of program
 
@@ -534,7 +534,7 @@ The Enron Corpus is a collection of 500,000 emails obtained by the Federal Energ
 
 The process can be improved by preprocessing emails to be reviewed to construct an internal social network through methods of graph analysis. For this paper a latent cluster random effects model was applied.^[*See* Krivitsky P, Handcock M (2018). _latentnet: Latent Position and ClusterModels for Statistical Networks_. The Statnet Project  http://www.statnet.org. R package version 2.9.0, https://CRAN.R-project.org/package=latentnet and Krivitsky PN, Handcock MS (2008). “Fitting position latent cluster models for social networks with latentnet.” _Journal of Statistical Software_, *24*(5).]
 
-To provide an informal test of the efficiacy of the latent graph classification, the vocabulary of each group was compared. Each shared distinct words in common, but each had unshared distinct terms with other groups. One group had a vocabulary with approximately 40% distinct words that did not appear in either other cluster.
+To provide an informal test of the efficiacy of the latent graph classification, the vocabulary of each group was compared. Each shared distinct words in common, but each had unshared distinct terms with other groups. One group had a vocabulary with approximately `r comma4(t2_unique_pct)`% distinct words that did not appear in either other cluster.
 
 As a method of reviewing emails, the machine learning approach of this approach has two principal benefits. The minimum information needed, a unique identifier for sender and receiver is either already available or extracted early in the process and so represents no additional effort. Judicious subsetting of users, based on graph metrics of centrality, to reduce the graph size, reduces the most computationally intensive portion of the work, latent model fitting. The second benefit is the ability to prioritize review of emails by graph cluster and with knowledge of the relative positions of the participants in the social network of the organization.
 
